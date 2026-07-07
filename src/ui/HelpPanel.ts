@@ -8,7 +8,7 @@ export class HelpPanel {
     const scrim = scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x05070d, 0.62);
     scrim.setInteractive();
 
-    const panel = scene.add.rectangle(GAME_WIDTH / 2, 565, GAME_WIDTH - 96, 560, COLORS.hudPanel, 0.98);
+    const panel = scene.add.rectangle(GAME_WIDTH / 2, 565, GAME_WIDTH - 72, 590, COLORS.hudPanel, 0.98);
     panel.setStrokeStyle(4, COLORS.hudStroke, 0.95);
 
     const title = scene.add
@@ -25,23 +25,23 @@ export class HelpPanel {
       .text(
         GAME_WIDTH / 2,
         510,
-        'Tap grill to prepare\nTap customer to serve\nEarn coins\nBuy upgrades\nRush Hour gives bonus rewards',
+        'Tap the grill to cook the order\nWhen food is ready, tap the customer\nEarn coins and stall XP\nBuy upgrades when buttons turn green\nRush Hour gives faster customers and bonus coins',
         {
           align: 'center',
           color: '#fff7df',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '27px',
-          lineSpacing: 15,
-          wordWrap: { width: GAME_WIDTH - 150 },
+          fontSize: '25px',
+          lineSpacing: 13,
+          wordWrap: { width: GAME_WIDTH - 120 },
         },
       )
       .setOrigin(0.5);
 
-    const closeButton = scene.add.rectangle(GAME_WIDTH / 2, 790, 210, 62, COLORS.success, 1);
+    const closeButton = scene.add.rectangle(GAME_WIDTH / 2, 810, 230, 66, COLORS.success, 1);
     closeButton.setStrokeStyle(3, 0xffffff, 0.65);
 
     const closeText = scene.add
-      .text(GAME_WIDTH / 2, 790, 'Close', {
+      .text(GAME_WIDTH / 2, 810, 'Close', {
         align: 'center',
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
@@ -50,7 +50,7 @@ export class HelpPanel {
       })
       .setOrigin(0.5);
 
-    const closeHitZone = scene.add.zone(GAME_WIDTH / 2, 790, 250, 86).setInteractive({ useHandCursor: true });
+    const closeHitZone = scene.add.zone(GAME_WIDTH / 2, 810, 270, 92).setInteractive({ useHandCursor: true });
     closeHitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
       onClose();
     });

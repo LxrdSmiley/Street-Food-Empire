@@ -15,6 +15,7 @@ Implemented now:
 - Boot, preload, title, and main gameplay scene flow
 - Start / Continue title scene with visible Reset Save
 - In-game Help overlay explaining the core loop
+- v0.1.1 polish pass with clearer mobile HUD text, larger tap targets, and stronger first-time guidance
 - Kingston Night Market placeholder scene
 - Four foods unlocked by stall level: Jerk Chicken, Festival, Roast Corn, Pepper Shrimp
 - Four customer types unlocked by stall level: Local Regular, Hungry Student, Night Shift Worker, Market Tourist
@@ -52,11 +53,14 @@ Not implemented yet:
 - Vite
 - Browser-first prototype
 - Placeholder visuals only
+- No audio in the current build
 
 ## Project Docs
 
 - Game Design Document: `docs/STREET_FOOD_EMPIRE_GDD.md`
 - Manual QA checklist: `docs/QA_CHECKLIST.md`
+- v0.1.1 release notes: `docs/RELEASE_NOTES_v0.1.1.md`
+- v0.1.0 release notes: `docs/RELEASE_NOTES_v0.1.0.md`
 
 ## Run Locally
 
@@ -65,11 +69,7 @@ npm install
 npm run dev
 ```
 
-Then open the local Vite URL, usually:
-
-```text
-http://127.0.0.1:5173/
-```
+Then open the local URL printed by Vite.
 
 Build check:
 
@@ -143,6 +143,8 @@ The current layout has been checked at:
 - `360x800`
 
 The Phaser canvas remains portrait-first and scales to fit the available browser viewport.
+
+The v0.1.1 polish pass specifically targets clearer HUD text, larger Rush Hour/Help/Reset tap areas, readable upgrade rows, visible customer order text, and larger grill/customer hit zones on the smallest supported portrait viewport.
 
 ## Current Gameplay Loop
 
@@ -235,10 +237,15 @@ src/
 
 ## Current Limitations
 
-- Placeholder shapes and text only; no art/audio polish yet.
+- Placeholder-safe original shapes and text only; no final art polish yet.
+- No audio has been added yet, so there are no music, sound effects, mute controls, or audio licensing requirements in this build.
 - No staff, daily rewards, monetization, backend, cloud saves, multiplayer, chat, public UGC, new locations, or complex events.
 - Rush Hour is manually triggered for prototype testing.
 - Balance is tuned for an early 5-10 minute prototype session and should be revisited after human playtests.
+
+## Asset And Audio Safety
+
+The current visuals are built from original Phaser rectangles, circles, ellipses, triangles, lines, and text. The project does not include copied photos, real restaurant names, real logos, external art packs, or audio assets.
 
 ## Security Note
 

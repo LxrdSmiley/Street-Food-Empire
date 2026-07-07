@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.1.1
+
+Demo presentation polish release candidate.
+
+### Polish Changes
+
+- Increased mobile HUD readability for coins, stall progress, Rush Hour state, food state, and message text.
+- Enlarged Rush Hour, Help, Reset Save, grill, customer, offline reward, and upgrade tap targets.
+- Added concise in-game guidance: `1 Tap grill  2 Tap customer  3 Buy upgrades`.
+- Improved title screen first-time guidance.
+- Reworded Help panel instructions for the core serving loop.
+- Refined placeholder-safe visuals using original Phaser primitive shapes only.
+- Added a clearer cart silhouette, market layering, simple food shapes, and stronger customer/order presentation.
+
+### Mobile Sizes Tested
+
+- `360x800`
+- `393x873`
+- `720x1280`
+- `1080x1920`
+
+### Known Limitations
+
+- Still placeholder-only; this is not a final art pass.
+- No audio has been added.
+- Rush Hour remains manually triggered for prototype testing.
+- No new foods, customers, systems, locations, backend, cloud saves, monetization, staff, or daily rewards.
+
+### Asset And Audio Safety
+
+All v0.1.1 visual changes use original Phaser primitive shapes and text. No copied art, real brands, real logos, external photos, or audio assets were added.
+
 ## v0.1.0
 
 First public prototype release prep for **Street Food Empire: Kingston Rush**.

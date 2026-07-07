@@ -73,14 +73,24 @@ Use this checklist before sharing a demo build.
 
 ## Mobile Screen Sizes
 
-- [ ] Check `720x1280`.
-- [ ] Check `1080x1920`.
 - [ ] Check `393x873`.
 - [ ] Check `360x800`.
+- [ ] Check `720x1280`.
+- [ ] Check `1080x1920`.
 - [ ] Confirm HUD text is readable.
+- [ ] Confirm coins, stall level, XP, and Rush Hour state remain readable.
 - [ ] Confirm upgrade panel does not cover grill/customer interactions.
 - [ ] Confirm Rush Hour, Help, and Reset buttons are easy to tap.
+- [ ] Confirm customer order text and food station text remain readable.
+- [ ] Confirm offline reward panel is readable and its Collect button is easy to tap.
 - [ ] Confirm no important UI goes off-screen.
+
+## Presentation Polish
+
+- [ ] Confirm title scene explains the loop: tap grill, tap customer, buy upgrades.
+- [ ] Confirm Help panel wording is clear for a first-time player.
+- [ ] Confirm placeholder visuals are original primitive shapes only.
+- [ ] Confirm no real brands, copied art, or external audio assets are present.
 
 ## Build Check
 

@@ -12,7 +12,7 @@ export class OfflineRewardPanel extends Phaser.GameObjects.Container {
 
     const scrim = scene.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.48);
     scrim.setInteractive();
-    const panel = scene.add.rectangle(0, 0, GAME_WIDTH - 96, 330, COLORS.hudPanel, 0.98);
+    const panel = scene.add.rectangle(0, 0, GAME_WIDTH - 72, 350, COLORS.hudPanel, 0.98);
     panel.setStrokeStyle(4, COLORS.hudStroke);
 
     const title = scene.add
@@ -20,7 +20,7 @@ export class OfflineRewardPanel extends Phaser.GameObjects.Container {
         align: 'center',
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '38px',
+        fontSize: '40px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -30,7 +30,7 @@ export class OfflineRewardPanel extends Phaser.GameObjects.Container {
         align: 'center',
         color: '#d8d0bd',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '24px',
+        fontSize: '26px',
       })
       .setOrigin(0.5);
 
@@ -39,7 +39,7 @@ export class OfflineRewardPanel extends Phaser.GameObjects.Container {
         align: 'center',
         color: '#ffd166',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
+        fontSize: '32px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -49,23 +49,24 @@ export class OfflineRewardPanel extends Phaser.GameObjects.Container {
         align: 'center',
         color: '#d8d0bd',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '19px',
+        fontSize: '21px',
+        wordWrap: { width: GAME_WIDTH - 120 },
       })
       .setOrigin(0.5);
 
-    const button = scene.add.rectangle(0, 118, 220, 62, COLORS.success, 1);
+    const button = scene.add.rectangle(0, 124, 240, 68, COLORS.success, 1);
     button.setStrokeStyle(3, 0xffffff, 0.55);
-    const hitZone = scene.add.zone(0, 118, 240, 76).setInteractive({ useHandCursor: true });
+    const hitZone = scene.add.zone(0, 124, 270, 92).setInteractive({ useHandCursor: true });
     hitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
       this.onCollect();
     });
 
     const buttonText = scene.add
-      .text(0, 118, 'Collect', {
+      .text(0, 124, 'Collect', {
         align: 'center',
         color: '#112015',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '25px',
+        fontSize: '27px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);

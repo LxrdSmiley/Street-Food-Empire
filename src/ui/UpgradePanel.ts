@@ -8,17 +8,17 @@ export class UpgradePanel extends Phaser.GameObjects.Container {
   private readonly onBuyUpgrade: (upgradeId: string) => void;
 
   constructor(scene: Phaser.Scene, onBuyUpgrade: (upgradeId: string) => void) {
-    super(scene, GAME_WIDTH / 2, 1106);
+    super(scene, GAME_WIDTH / 2, 1112);
     this.onBuyUpgrade = onBuyUpgrade;
 
-    const panel = scene.add.rectangle(0, 0, GAME_WIDTH - 48, 202, COLORS.hudPanel, 0.94);
+    const panel = scene.add.rectangle(0, 0, GAME_WIDTH - 40, 214, COLORS.hudPanel, 0.96);
     panel.setStrokeStyle(3, COLORS.hudStroke);
 
     const title = scene.add
-      .text(-310, -84, 'Upgrades', {
+      .text(-318, -90, 'Upgrades', {
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '21px',
+        fontSize: '24px',
         fontStyle: 'bold',
       })
       .setOrigin(0, 0.5);
@@ -32,7 +32,7 @@ export class UpgradePanel extends Phaser.GameObjects.Container {
     this.rows.length = 0;
 
     upgradeStates.forEach((upgradeState, index) => {
-      const y = -48 + index * 42;
+      const y = -50 + index * 44;
       const rowObjects = this.createRow(upgradeState, y);
       this.rows.push(...rowObjects);
       this.add(rowObjects);
@@ -45,7 +45,7 @@ export class UpgradePanel extends Phaser.GameObjects.Container {
       .text(-310, y, upgradeState.definition.name, {
         color: upgradeState.isUnlocked ? '#fff7df' : '#8f96a3',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
+        fontSize: '19px',
         fontStyle: 'bold',
       })
       .setOrigin(0, 0.5);
@@ -54,7 +54,7 @@ export class UpgradePanel extends Phaser.GameObjects.Container {
       .text(-116, y, `Lv ${upgradeState.level}/${upgradeState.definition.maxLevel}`, {
         color: '#ffd166',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
+        fontSize: '18px',
       })
       .setOrigin(0, 0.5);
 
@@ -63,14 +63,14 @@ export class UpgradePanel extends Phaser.GameObjects.Container {
       .text(-22, y, status, {
         color: upgradeState.canAfford ? '#7bd88f' : '#d8d0bd',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
+        fontSize: '17px',
       })
       .setOrigin(0, 0.5);
 
     const canBuy = upgradeState.canAfford && !upgradeState.isMaxed && upgradeState.isUnlocked;
-    const button = scene.add.rectangle(235, y, 148, 32, canBuy ? COLORS.success : 0x3b3f4d, 1);
+    const button = scene.add.rectangle(235, y, 154, 36, canBuy ? COLORS.success : 0x3b3f4d, 1);
     button.setStrokeStyle(2, 0xffffff, 0.45);
-    const hitZone = scene.add.zone(235, y, 158, 38).setInteractive({ useHandCursor: canBuy });
+    const hitZone = scene.add.zone(235, y, 172, 52).setInteractive({ useHandCursor: canBuy });
 
     hitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
       if (canBuy) {
@@ -83,7 +83,7 @@ export class UpgradePanel extends Phaser.GameObjects.Container {
         align: 'center',
         color: canBuy ? '#112015' : '#d8d0bd',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
+        fontSize: '17px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);

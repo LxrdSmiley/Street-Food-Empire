@@ -14,17 +14,29 @@ export class FoodStation extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, x: number, y: number, onSelected: () => void) {
     super(scene, x, y);
 
-    const hitZone = scene.add.zone(0, 0, 350, 230).setInteractive({ useHandCursor: true });
-    const base = scene.add.rectangle(0, 0, 330, 180, COLORS.grill, 1).setStrokeStyle(5, 0xffd166);
-    const heat = scene.add.rectangle(0, -36, 250, 58, 0x181a21, 1);
+    const hitZone = scene.add.zone(0, 0, 410, 260).setInteractive({ useHandCursor: true });
+    const base = scene.add.rectangle(0, 0, 360, 196, COLORS.grill, 1).setStrokeStyle(5, 0xffd166);
+    const heat = scene.add.rectangle(0, -42, 278, 66, 0x181a21, 1);
     const grateA = scene.add.line(0, -56, -104, 0, 104, 0, 0x6f7785, 1);
     const grateB = scene.add.line(0, -36, -104, 0, 104, 0, 0x6f7785, 1);
     const grateC = scene.add.line(0, -16, -104, 0, 104, 0, 0x6f7785, 1);
+    const foodPlate = scene.add.ellipse(-102, -40, 64, 34, 0xfff7df, 1).setStrokeStyle(2, 0x11131e);
+    const foodPieceA = scene.add.ellipse(-112, -43, 30, 18, 0xb85f2e, 1);
+    const foodPieceB = scene.add.ellipse(-90, -36, 28, 16, 0xe0953f, 1);
+    const tapBadge = scene.add.rectangle(110, -42, 98, 34, COLORS.success, 1).setStrokeStyle(2, 0xffffff, 0.55);
+    const tapText = scene.add
+      .text(110, -42, 'TAP', {
+        color: '#112015',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '19px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
     const label = scene.add
       .text(0, 36, 'Jerk Grill', {
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '28px',
+        fontSize: '30px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -33,7 +45,8 @@ export class FoodStation extends Phaser.GameObjects.Container {
       .text(0, 74, 'Tap to cook', {
         color: '#ffd166',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '19px',
+        fontSize: '22px',
+        fontStyle: 'bold',
       })
       .setOrigin(0.5);
 
@@ -49,6 +62,11 @@ export class FoodStation extends Phaser.GameObjects.Container {
       grateA,
       grateB,
       grateC,
+      foodPlate,
+      foodPieceA,
+      foodPieceB,
+      tapBadge,
+      tapText,
       label,
       this.statusText,
       this.progressTrack,

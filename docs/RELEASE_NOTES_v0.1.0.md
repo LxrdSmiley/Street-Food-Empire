@@ -20,11 +20,7 @@ npm install
 npm run dev
 ```
 
-Open the Vite URL, usually:
-
-```text
-http://127.0.0.1:5173/
-```
+Open the local URL printed by Vite.
 
 ## How To Build And Preview
 
@@ -33,11 +29,7 @@ npm run build
 npm run preview
 ```
 
-Open the preview URL printed by Vite, usually:
-
-```text
-http://127.0.0.1:4173/
-```
+Open the preview URL printed by Vite.
 
 ## How To Deploy And Test GitHub Pages
 

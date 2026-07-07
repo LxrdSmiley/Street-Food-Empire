@@ -83,7 +83,7 @@ export class MainScene extends Phaser.Scene {
       scene: this,
       customers: CUSTOMERS,
       foods: FOODS,
-      spawnPoint: { x: GAME_WIDTH / 2, y: 545 },
+      spawnPoint: { x: GAME_WIDTH / 2, y: 520 },
       getStallLevel: () => this.progressionSystem.getStallLevel(),
       getPatienceBonusMs: () => this.upgradeSystem.getPatienceBonusMs(),
       onCustomerSelected: () => {
@@ -101,7 +101,7 @@ export class MainScene extends Phaser.Scene {
     this.hud.updateRushState(this.rushHourSystem.getState());
 
     if (endedRush) {
-      this.hud.setMessage('Rush hour ended. Back to normal pace.');
+      this.hud.setMessage('Rush Hour ended. Normal rewards and pacing are back.');
     }
   }
 
@@ -117,7 +117,7 @@ export class MainScene extends Phaser.Scene {
     const food = this.findFood(order.foodId);
     const prepTimeMs = this.upgradeSystem.getAdjustedPrepTime(food);
     const started = this.foodStation.startPreparing(food, prepTimeMs, () => {
-      this.hud.setMessage(`${food.name} ready. Tap the customer to serve.`);
+      this.hud.setMessage(`${food.name} ready. Tap the customer order bubble.`);
       this.hud.updateFoodState(`${food.name} ready`);
       this.customerSystem.setActiveCustomerReady(true);
     });
@@ -130,18 +130,18 @@ export class MainScene extends Phaser.Scene {
     }
 
     if (this.foodStation.isPreparing()) {
-      this.hud.setMessage('The grill is already cooking.');
+      this.hud.setMessage('Cooking now. Watch the green bar fill.');
       return;
     }
 
-    this.hud.setMessage('Food is ready. Tap the customer.');
+    this.hud.setMessage('Food is ready. Tap the customer order bubble.');
   }
 
   private handleCustomerTap(): void {
     const preparedFoodId = this.foodStation.getPreparedFoodId();
 
     if (!preparedFoodId) {
-      this.hud.setMessage('Prepare the order first.');
+      this.hud.setMessage('Tap the grill first to prepare this order.');
       return;
     }
 
@@ -215,7 +215,7 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    this.hud.setMessage('Rush hour started. Serve fast for 2x coins.');
+    this.hud.setMessage('Rush Hour active: serve fast for 2x coins.');
     this.showFloatingText('Rush Hour', GAME_WIDTH / 2, 300, '#ffd166');
   }
 
@@ -327,7 +327,7 @@ export class MainScene extends Phaser.Scene {
       return 'Save reset. Tap the grill to prepare the next order.';
     }
 
-    return 'Tap the grill to prepare the next order.';
+    return 'Tap the grill to prepare the customer order.';
   }
 
   private getPurchaseFailureMessage(reason: string): string {
@@ -386,6 +386,7 @@ export class MainScene extends Phaser.Scene {
 
   private createMarketBackdrop(): void {
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.skyTop);
+    this.add.rectangle(GAME_WIDTH / 2, 360, GAME_WIDTH, 260, 0x1a2440, 0.55);
     this.add.rectangle(GAME_WIDTH / 2, 830, GAME_WIDTH, 900, COLORS.skyBottom);
     this.add.rectangle(GAME_WIDTH / 2, 1085, GAME_WIDTH, 390, COLORS.street);
 
@@ -406,11 +407,13 @@ export class MainScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    for (let index = 0; index < 7; index += 1) {
-      const x = 72 + index * 96;
+    for (let index = 0; index < 9; index += 1) {
+      const x = 36 + index * 84;
       const y = 245 + (index % 2) * 28;
       this.add.circle(x, y, 8, COLORS.warning, 0.9);
-      this.add.line(x, y, 0, 0, 48, 40, 0xfff0a8, 0.35).setOrigin(0, 0);
+      this.add.line(x, y, 0, 0, 48, 40, 0xfff0a8, 0.32).setOrigin(0, 0);
     }
+
+    this.add.rectangle(GAME_WIDTH / 2, 690, GAME_WIDTH, 34, 0x3d2f36, 0.7);
   }
 }
