@@ -11,6 +11,7 @@ import {
 import { clamp } from '../utils/math';
 import type {
   GameSnapshot,
+  GameSettings,
   LoadedSave,
   SaveGameData,
   UpgradeDefinition,
@@ -19,6 +20,7 @@ import type {
 
 const CHECKSUM_SALT = 'street-food-empire-local-save-v1';
 type SaveChecksumPayload = Omit<SaveGameData, 'checksum'>;
+type LegacySaveChecksumPayload = Omit<SaveGameData, 'checksum' | 'settings'>;
 
 export class SaveSystem {
   private readonly upgrades: readonly UpgradeDefinition[];
@@ -66,12 +68,21 @@ export class SaveSystem {
       upgrades: parsedSave.upgrades,
       stallLevel: parsedSave.stallLevel,
       stallXp: parsedSave.stallXp,
+      settings: this.repairSettings(parsedSave.settings),
+      lastSavedAt: parsedSave.lastSavedAt,
+    });
+    const legacyChecksum = this.createLegacyChecksum({
+      schemaVersion: parsedSave.schemaVersion,
+      coins: parsedSave.coins,
+      upgrades: parsedSave.upgrades,
+      stallLevel: parsedSave.stallLevel,
+      stallXp: parsedSave.stallXp,
       lastSavedAt: parsedSave.lastSavedAt,
     });
 
     // This checksum only detects casual LocalStorage edits. It is not cryptographic
     // anti-cheat because every secret needed to recompute it ships with the client.
-    if (parsedSave.checksum !== expectedChecksum) {
+    if (parsedSave.checksum !== expectedChecksum && parsedSave.checksum !== legacyChecksum) {
       this.save(defaultSave.snapshot);
       return {
         ...defaultSave,
@@ -98,6 +109,7 @@ export class SaveSystem {
       upgrades: this.repairUpgradeLevels(snapshot.upgrades),
       stallLevel: this.clampStallLevel(snapshot.stallLevel),
       stallXp: this.clampStallXp(snapshot.stallXp),
+      settings: this.repairSettings(snapshot.settings),
     };
     const payloadWithoutChecksum = {
       schemaVersion: SAVE_SCHEMA_VERSION,
@@ -105,6 +117,7 @@ export class SaveSystem {
       upgrades: repairedSnapshot.upgrades,
       stallLevel: repairedSnapshot.stallLevel,
       stallXp: repairedSnapshot.stallXp,
+      settings: repairedSnapshot.settings,
       lastSavedAt: now,
     };
     const saveData: SaveGameData = {
@@ -127,6 +140,7 @@ export class SaveSystem {
     const repairedUpgrades = this.repairUpgradeLevels(saveData.upgrades);
     const repairedStallLevel = this.clampStallLevel(saveData.stallLevel);
     const repairedStallXp = this.clampStallXp(saveData.stallXp);
+    const repairedSettings = this.repairSettings(saveData.settings);
     let repairedLastSavedAt = saveData.lastSavedAt;
 
     if (saveData.schemaVersion !== SAVE_SCHEMA_VERSION) {
@@ -149,6 +163,10 @@ export class SaveSystem {
       reasons.push('stall progress repaired');
     }
 
+    if (!this.areSettingsEqual(repairedSettings, saveData.settings)) {
+      reasons.push('settings repaired');
+    }
+
     if (!Number.isFinite(saveData.lastSavedAt) || saveData.lastSavedAt < 0) {
       repairedLastSavedAt = now;
       reasons.push('timestamp repaired');
@@ -169,6 +187,7 @@ export class SaveSystem {
           upgrades: repairedUpgrades,
           stallLevel: repairedStallLevel,
           stallXp: repairedStallXp,
+          settings: repairedSettings,
         },
         lastSavedAt: repairedLastSavedAt,
         status: isValid ? 'loaded' : 'repaired',
@@ -185,6 +204,7 @@ export class SaveSystem {
         upgrades: this.createDefaultUpgradeLevels(),
         stallLevel: STARTING_STALL_LEVEL,
         stallXp: STARTING_STALL_XP,
+        settings: this.createDefaultSettings(),
       },
       lastSavedAt: Date.now(),
       status: 'default',
@@ -194,6 +214,12 @@ export class SaveSystem {
 
   private createDefaultUpgradeLevels(): UpgradeLevels {
     return Object.fromEntries(this.upgrades.map((upgrade) => [upgrade.id, 0]));
+  }
+
+  private createDefaultSettings(): GameSettings {
+    return {
+      soundEnabled: true,
+    };
   }
 
   private repairUpgradeLevels(upgradeLevels: UpgradeLevels): UpgradeLevels {
@@ -224,6 +250,20 @@ export class SaveSystem {
     return Number.isFinite(stallXp) ? Math.round(clamp(stallXp, STARTING_STALL_XP, 999_999)) : STARTING_STALL_XP;
   }
 
+  private repairSettings(settings: unknown): GameSettings {
+    if (!settings || typeof settings !== 'object') {
+      return this.createDefaultSettings();
+    }
+
+    const candidate = settings as Partial<GameSettings>;
+    return {
+      soundEnabled:
+        typeof candidate.soundEnabled === 'boolean'
+          ? candidate.soundEnabled
+          : this.createDefaultSettings().soundEnabled,
+    };
+  }
+
   private areUpgradeLevelsEqual(repaired: UpgradeLevels, original: UpgradeLevels): boolean {
     const validIds = new Set(this.upgrades.map((upgrade) => upgrade.id));
     validIds.add('grill_speed_1');
@@ -234,6 +274,15 @@ export class SaveSystem {
     }
 
     return this.upgrades.every((upgrade) => repaired[upgrade.id] === original[upgrade.id]);
+  }
+
+  private areSettingsEqual(repaired: GameSettings, original: unknown): boolean {
+    if (!original || typeof original !== 'object') {
+      return false;
+    }
+
+    const candidate = original as Partial<GameSettings>;
+    return repaired.soundEnabled === candidate.soundEnabled;
   }
 
   private isSaveObject(value: unknown): value is SaveGameData {
@@ -253,6 +302,35 @@ export class SaveSystem {
   }
 
   private createChecksum(payload: SaveChecksumPayload): string {
+    const stablePayload = JSON.stringify({
+      schemaVersion: payload.schemaVersion,
+      coins: payload.coins,
+      upgrades: Object.keys(payload.upgrades)
+        .sort()
+        .reduce<UpgradeLevels>((sortedUpgrades, upgradeId) => {
+          sortedUpgrades[upgradeId] = payload.upgrades[upgradeId];
+          return sortedUpgrades;
+        }, {}),
+      stallLevel: payload.stallLevel,
+      stallXp: payload.stallXp,
+      settings: {
+        soundEnabled: payload.settings.soundEnabled,
+      },
+      lastSavedAt: payload.lastSavedAt,
+      salt: CHECKSUM_SALT,
+    });
+
+    let hash = 2166136261;
+
+    for (let index = 0; index < stablePayload.length; index += 1) {
+      hash ^= stablePayload.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+
+    return (hash >>> 0).toString(16);
+  }
+
+  private createLegacyChecksum(payload: LegacySaveChecksumPayload): string {
     const stablePayload = JSON.stringify({
       schemaVersion: payload.schemaVersion,
       coins: payload.coins,

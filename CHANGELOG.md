@@ -1,5 +1,51 @@
 # Changelog
 
+## v0.2.0
+
+Redesign of the core gameplay loop introducing slot-based cooking and a day-based session system.
+
+### Core Loop Changes
+
+- **Cooking Slot System:** Replaced the single-action grill with a two-slot cooking station on the grill supporting `empty`, `cooking`, `ready`, and `burnt` states. Burnt food can be cleared by tapping.
+- **Day System:** Added a short day loop of 6 customers. Displays a summary panel showing served/missed stats, coins, tips, satisfaction %, and best streak.
+- **Order Logic:** Customers request 1–2 items depending on current progress.
+- **Satisfaction System:** Added a dynamic satisfaction tracker affected by served speed, wrong orders, burnt food, and customer wait failures.
+- **Streak System:** Added a streak counter that gives a tip multiplier for consecutive correct orders.
+
+### Tech and Coordination Updates
+
+- Added modular coordination systems: `DaySystem`, `OrderSystem`, `SatisfactionSystem`, and `StreakSystem`.
+- Centralized UI updates in `HUD` and added `DaySummaryPanel`.
+- Upgraded save files to version 3 schema with automatic migration, clamping, and active day reset safety.
+
+### Known Limitations
+
+- **No Early Discard:** There is no trash action; wrong food must burn before clearing.
+- **Client-Side Limits:** Save security remains basic client-side verification.
+
+## v0.1.2
+
+Lightweight generated audio and sound toggle release candidate.
+
+### Audio Changes
+
+- Added short, soft, generated WebAudio tones for button taps, food prep start, food ready, serve success, coin gain, upgrade bought, level up, and Rush Hour start/end.
+- Added visible `Sound: On` / `Sound: Off` toggles on the title screen and in-game HUD.
+- Persisted `settings.soundEnabled` through the existing `SaveSystem`.
+- Migrated older saves safely by defaulting missing settings to sound enabled.
+
+### Safety Notes
+
+- No `.wav`, `.mp3`, `.ogg`, external audio assets, audio packs, background music, or new dependencies were added.
+- Audio unlocks only after user interaction and does not autoplay on title load.
+- All WebAudio usage is centralized in `AudioSystem`.
+
+### Known Limitations
+
+- No volume setting yet.
+- No background music.
+- Generated tones are intentionally simple and may need human playtest tuning for comfort.
+
 ## v0.1.1
 
 Demo presentation polish release candidate.

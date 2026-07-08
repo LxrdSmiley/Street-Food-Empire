@@ -2,11 +2,11 @@
 
 Street Food Empire: Kingston Rush is a portrait-first 2D street food tycoon prototype built with Phaser 3, TypeScript, and Vite.
 
-The player starts with a Jamaican food cart in Kingston Night Market, serves customers, earns coins, buys a first grill upgrade, triggers a short rush hour, and eventually grows toward a larger street food empire. The current build is intentionally small: it proves the first customer-serving loop, first progression upgrade, local save foundation, and first active gameplay spike before adding larger systems.
+The player starts with a Jamaican food cart in Kingston Night Market, serves customers, earns coins, buys a first grill upgrade, triggers a short rush hour, and eventually grows toward a larger street food empire.
 
 ## Project Status
 
-Early playable prototype.
+Playable core cooking vertical slice prototype (`v0.2.0`).
 
 Implemented now:
 
@@ -15,28 +15,29 @@ Implemented now:
 - Boot, preload, title, and main gameplay scene flow
 - Start / Continue title scene with visible Reset Save
 - In-game Help overlay explaining the core loop
-- v0.1.1 polish pass with clearer mobile HUD text, larger tap targets, and stronger first-time guidance
+- v0.2.0 core loop redesign featuring slot-based cooking (2 cooking slots)
+- Cooking states: `empty`, `cooking`, `ready`, `burnt`
+- Burnt food management (clearing slot, satisfaction penalty)
+- Day/Session system (6 customer target) and `DaySummaryPanel` showing served/missed, coins, tips, satisfaction %, and best streak
+- Order logic requesting 1-2 items from unlocked foods
+- Satisfaction system clamped between `[0, 100]` with outcomes for serves/misses/burnt
+- Streak system tracking consecutive correct serves and rewarding a tip multiplier
 - Kingston Night Market placeholder scene
 - Four foods unlocked by stall level: Jerk Chicken, Festival, Roast Corn, Pepper Shrimp
 - Four customer types unlocked by stall level: Local Regular, Hungry Student, Night Shift Worker, Market Tourist
-- Tap grill to prepare food
-- Tap customer to serve
-- Coin reward through `EconomySystem`
+- Coin and tip reward through `EconomySystem`
 - Multiple upgrades: `grill_speed`, `food_value`, `customer_patience`, `stall_capacity`
 - Upgrade purchase through `UpgradeSystem`
 - Upgrade panel with affordability/max-level states
 - Stall level and XP progression through `ProgressionSystem`
-- Simple food, customer, and upgrade unlocks by stall level
-- LocalStorage save/load through `SaveSystem`
-- Save schema validation, clamping, and lightweight checksum tamper detection
-- Manual Rush Hour prototype through `RushHourSystem`
-- 30-second rush state with faster customer pacing and 2x coin rewards
+- LocalStorage save/load through `SaveSystem` (version 3 schema) with automatic migration, clamping, and active day reset safety
+- Manual Rush Hour prototype through `RushHourSystem` (30-second rush state with 2x coin rewards)
 - Math-based offline earnings through `OfflineEarningsSystem`
 - Resume reward panel for collecting offline coins
 - Mobile-hardened HUD, upgrade panel, and tap targets for portrait screens
 - Visible Reset Save button for local testing
 - Lightweight placeholder feedback for serves, level-ups, upgrades, unavailable purchases, and rush start
-- Manual regression checklist in `docs/QA_CHECKLIST.md`
+- Manual QA checklist in `docs/QA_CHECKLIST.md`
 - Organized source folders for scenes, systems, entities, UI, data, types, config, and utilities
 
 Not implemented yet:
@@ -53,12 +54,14 @@ Not implemented yet:
 - Vite
 - Browser-first prototype
 - Placeholder visuals only
-- No audio in the current build
+- Generated in-code sound effects only; no external audio assets
 
 ## Project Docs
 
 - Game Design Document: `docs/STREET_FOOD_EMPIRE_GDD.md`
 - Manual QA checklist: `docs/QA_CHECKLIST.md`
+- v0.2.0 release notes: `docs/RELEASE_NOTES_v0.2.0.md`
+- v0.1.2 release notes: `docs/RELEASE_NOTES_v0.1.2.md`
 - v0.1.1 release notes: `docs/RELEASE_NOTES_v0.1.1.md`
 - v0.1.0 release notes: `docs/RELEASE_NOTES_v0.1.0.md`
 
@@ -133,6 +136,14 @@ Use the visible `Reset Save` button on the title scene or in the game view to re
 
 The reset path calls `SaveSystem.reset()`. There are no hidden coin, upgrade, or progression cheat keys.
 
+## Sound Toggle
+
+The title scene and in-game HUD include a visible `Sound: On` / `Sound: Off` toggle. The setting is saved through `SaveSystem` as `settings.soundEnabled` and persists after refresh.
+
+All current sound effects are generated in code with WebAudio inside `AudioSystem`. The game does not ship `.wav`, `.mp3`, `.ogg`, external audio packs, background music, copied sounds, or real brand jingles.
+
+Browser audio starts only after a user interaction, such as pressing Start, toggling Sound, tapping the grill, or pressing Rush Hour.
+
 ## Mobile QA Targets
 
 The current layout has been checked at:
@@ -149,22 +160,18 @@ The v0.1.1 polish pass specifically targets clearer HUD text, larger Rush Hour/H
 ## Current Gameplay Loop
 
 ```text
-Customer appears
--> Customer requests Jerk Chicken
--> Player taps the grill
--> Food prep timer completes
--> Player taps the customer
--> Coins increase
--> Stall XP increases
--> Stall levels unlock foods, customers, and upgrades
--> Player buys upgrades
--> Prep speed, order value, patience display, and customer pacing improve
--> Coins, upgrade levels, stall level, and stall XP save locally
--> Returning after time away may show a capped offline reward
--> Player can start Rush Hour
--> Rush Hour temporarily doubles coins and speeds up customer flow
--> Customer leaves
--> Another customer appears
+Player starts the day (6-customer shift)
+-> Customer appears with 1-2 item bubble and patience bar
+-> Player taps empty grill slots to start cooking next needed items
+-> Food prepares in cooking slots
+-> Food is ready (can burn if ignored too long)
+-> Player taps ready food slots to select them
+-> Player taps customer to serve the selected items
+-> Correct order awards coins/tips, increases streak and satisfaction
+-> Wrong/burnt/missed outcomes reset streak and decrease satisfaction
+-> Coins and tips save locally (resets active day state on reload)
+-> Day ends after 6 served/missed customer outcomes
+-> Day Summary Panel displays results and rates the day
 ```
 
 ## Project Structure
@@ -188,11 +195,16 @@ src/
     TitleScene.ts
     MainScene.ts
   systems/
+    AudioSystem.ts
     CustomerSystem.ts
+    DaySystem.ts
     EconomySystem.ts
     OfflineEarningsSystem.ts
+    OrderSystem.ts
     ProgressionSystem.ts
     SaveSystem.ts
+    SatisfactionSystem.ts
+    StreakSystem.ts
     RushHourSystem.ts
     UpgradeSystem.ts
   entities/
@@ -200,6 +212,7 @@ src/
     FoodStation.ts
     Stall.ts
   ui/
+    DaySummaryPanel.ts
     HelpPanel.ts
     HUD.ts
     OfflineRewardPanel.ts
@@ -238,14 +251,14 @@ src/
 ## Current Limitations
 
 - Placeholder-safe original shapes and text only; no final art polish yet.
-- No audio has been added yet, so there are no music, sound effects, mute controls, or audio licensing requirements in this build.
+- No background music, imported sound files, volume control, or polished audio mix yet.
 - No staff, daily rewards, monetization, backend, cloud saves, multiplayer, chat, public UGC, new locations, or complex events.
 - Rush Hour is manually triggered for prototype testing.
 - Balance is tuned for an early 5-10 minute prototype session and should be revisited after human playtests.
 
 ## Asset And Audio Safety
 
-The current visuals are built from original Phaser rectangles, circles, ellipses, triangles, lines, and text. The project does not include copied photos, real restaurant names, real logos, external art packs, or audio assets.
+The current visuals are built from original Phaser rectangles, circles, ellipses, triangles, lines, and text. The current sounds are generated in code. The project does not include copied photos, real restaurant names, real logos, external art packs, or external audio assets.
 
 ## Security Note
 

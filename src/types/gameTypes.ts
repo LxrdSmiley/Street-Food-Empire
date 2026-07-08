@@ -6,6 +6,7 @@ export interface FoodDefinition {
   name: string;
   description: string;
   basePrepTimeMs: number;
+  readyWindowMs: number;
   baseReward: number;
   unlockStallLevel: number;
 }
@@ -15,44 +16,80 @@ export interface CustomerDefinition {
   displayName: string;
   patienceMs: number;
   tipMultiplier: number;
+  orderDifficultyBias: number;
+  personalityLines: readonly string[];
   availableFromStallLevel: number;
 }
 
-export interface CustomerOrder {
+export interface OrderItem {
   foodId: string;
+  label: string;
+}
+
+export interface CustomerOrder {
+  items: OrderItem[];
   label: string;
 }
 
 export interface CustomerState {
   id: string;
   customerTypeId: string;
+  customer: CustomerDefinition;
   order: CustomerOrder;
   view: Customer;
   isReadyToServe: boolean;
+  patienceMs: number;
+  remainingPatienceMs: number;
 }
 
 export interface CustomerSpawnConfig {
   scene: Phaser.Scene;
   customers: readonly CustomerDefinition[];
-  foods: readonly FoodDefinition[];
   spawnPoint: {
     x: number;
     y: number;
   };
   getStallLevel: () => number;
   getPatienceBonusMs: () => number;
+  createOrder: (customer: CustomerDefinition) => CustomerOrder;
   onCustomerSelected: () => void;
+  onCustomerExpired: (customerState: CustomerState) => void;
 }
 
-export type ServeResult =
-  | {
-      success: true;
-      customerTypeId: string;
-      foodId: string;
-    }
-  | {
-      success: false;
-    };
+export type FoodSlotState = 'empty' | 'cooking' | 'ready' | 'burnt';
+
+export interface FoodSlotSnapshot {
+  index: number;
+  state: FoodSlotState;
+  foodId?: string;
+}
+
+export interface OrderCheckResult {
+  isCorrect: boolean;
+  expectedFoodIds: string[];
+  servedFoodIds: string[];
+}
+
+export interface DayState {
+  isActive: boolean;
+  targetCustomers: number;
+  customersServed: number;
+  customersMissed: number;
+  coinsEarned: number;
+  tipsEarned: number;
+  satisfaction: number;
+  bestStreak: number;
+}
+
+export interface DaySummary {
+  customersServed: number;
+  customersMissed: number;
+  coinsEarned: number;
+  tipsEarned: number;
+  satisfaction: number;
+  bestStreak: number;
+  resultText: 'Great Day' | 'Good Day' | 'Rough Day';
+}
 
 export type UpgradeEffectType =
   | 'prep_time_reduction_ms'
@@ -96,12 +133,28 @@ export type PurchaseUpgradeResult =
       reason: 'unknown_upgrade' | 'locked' | 'max_level' | 'not_enough_coins';
     };
 
+export type AudioEventName =
+  | 'button_tap'
+  | 'food_prep_start'
+  | 'food_ready'
+  | 'serve_success'
+  | 'coin_gain'
+  | 'upgrade_bought'
+  | 'level_up'
+  | 'rush_start'
+  | 'rush_end';
+
+export interface GameSettings {
+  soundEnabled: boolean;
+}
+
 export interface SaveGameData {
   schemaVersion: number;
   coins: number;
   upgrades: UpgradeLevels;
   stallLevel: number;
   stallXp: number;
+  settings: GameSettings;
   lastSavedAt: number;
   checksum: string;
 }
@@ -111,6 +164,7 @@ export interface GameSnapshot {
   upgrades: UpgradeLevels;
   stallLevel: number;
   stallXp: number;
+  settings: GameSettings;
 }
 
 export interface LoadedSave {

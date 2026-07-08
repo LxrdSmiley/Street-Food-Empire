@@ -3,32 +3,51 @@ import { COLORS, GAME_HEIGHT, GAME_WIDTH, SCENE_KEYS } from '../config/constants
 import { FOODS } from '../data/foods';
 import { CUSTOMERS } from '../data/customers';
 import { UPGRADES } from '../data/upgrades';
+import { AudioSystem } from '../systems/AudioSystem';
 import { CustomerSystem } from '../systems/CustomerSystem';
+import { DaySystem } from '../systems/DaySystem';
 import { EconomySystem } from '../systems/EconomySystem';
 import { SaveSystem } from '../systems/SaveSystem';
 import { OfflineEarningsSystem } from '../systems/OfflineEarningsSystem';
+import { OrderSystem } from '../systems/OrderSystem';
 import { RushHourSystem } from '../systems/RushHourSystem';
+import { SatisfactionSystem } from '../systems/SatisfactionSystem';
+import { StreakSystem } from '../systems/StreakSystem';
 import { UpgradeSystem } from '../systems/UpgradeSystem';
 import { ProgressionSystem } from '../systems/ProgressionSystem';
 import { FoodStation } from '../entities/FoodStation';
 import { Stall } from '../entities/Stall';
 import { HUD } from '../ui/HUD';
+import { DaySummaryPanel } from '../ui/DaySummaryPanel';
 import { HelpPanel } from '../ui/HelpPanel';
 import { OfflineRewardPanel } from '../ui/OfflineRewardPanel';
 import { UpgradePanel } from '../ui/UpgradePanel';
-import type { FoodDefinition, LoadedSave, OfflineEarningsResult } from '../types/gameTypes';
+import type {
+  CustomerOrder,
+  CustomerState,
+  DaySummary,
+  FoodDefinition,
+  LoadedSave,
+  OfflineEarningsResult,
+} from '../types/gameTypes';
 
 export class MainScene extends Phaser.Scene {
   private customerSystem!: CustomerSystem;
+  private audioSystem!: AudioSystem;
+  private daySystem!: DaySystem;
   private economySystem!: EconomySystem;
   private saveSystem!: SaveSystem;
   private offlineEarningsSystem!: OfflineEarningsSystem;
+  private orderSystem!: OrderSystem;
   private rushHourSystem!: RushHourSystem;
+  private satisfactionSystem!: SatisfactionSystem;
+  private streakSystem!: StreakSystem;
   private upgradeSystem!: UpgradeSystem;
   private progressionSystem!: ProgressionSystem;
   private foodStation!: FoodStation;
   private hud!: HUD;
   private upgradePanel!: UpgradePanel;
+  private daySummaryPanel?: DaySummaryPanel;
   private helpPanel?: HelpPanel;
   private offlineRewardPanel?: OfflineRewardPanel;
   private pendingOfflineReward?: OfflineEarningsResult;
@@ -46,12 +65,17 @@ export class MainScene extends Phaser.Scene {
     const loadedSave = this.saveSystem.load();
 
     this.economySystem = new EconomySystem(loadedSave.snapshot.coins);
+    this.audioSystem = new AudioSystem(loadedSave.snapshot.settings.soundEnabled);
     this.upgradeSystem = new UpgradeSystem(UPGRADES, loadedSave.snapshot.upgrades);
     this.progressionSystem = new ProgressionSystem(
       loadedSave.snapshot.stallLevel,
       loadedSave.snapshot.stallXp,
     );
+    this.daySystem = new DaySystem();
+    this.satisfactionSystem = new SatisfactionSystem();
+    this.streakSystem = new StreakSystem();
     this.offlineEarningsSystem = new OfflineEarningsSystem();
+    this.orderSystem = new OrderSystem(FOODS, () => this.progressionSystem.getStallLevel());
     this.rushHourSystem = new RushHourSystem();
 
     this.hud = new HUD(
@@ -65,9 +89,18 @@ export class MainScene extends Phaser.Scene {
       () => {
         this.handleHelpRequest();
       },
+      () => {
+        this.handleSoundToggle();
+      },
+      () => {
+        this.handleStartDayRequest();
+      },
+      this.audioSystem.isEnabled(),
     );
     this.hud.updateCoins(this.economySystem.getCoins());
     this.hud.updateRushState(this.rushHourSystem.getState());
+    this.hud.updateDayState(this.daySystem.getState());
+    this.hud.updateStreak(this.streakSystem.getCurrentStreak(), this.streakSystem.getBestStreak());
     this.renderProgression();
 
     this.upgradePanel = new UpgradePanel(this, (upgradeId) => {
@@ -75,24 +108,28 @@ export class MainScene extends Phaser.Scene {
     });
     this.renderUpgradePanel();
 
-    this.foodStation = new FoodStation(this, GAME_WIDTH / 2, 905, () => {
-      this.handleFoodStationTap();
+    this.foodStation = new FoodStation(this, GAME_WIDTH / 2, 905, (slotIndex) => {
+      this.handleFoodSlotTap(slotIndex);
     });
 
     this.customerSystem = new CustomerSystem({
       scene: this,
       customers: CUSTOMERS,
-      foods: FOODS,
       spawnPoint: { x: GAME_WIDTH / 2, y: 520 },
       getStallLevel: () => this.progressionSystem.getStallLevel(),
       getPatienceBonusMs: () => this.upgradeSystem.getPatienceBonusMs(),
+      createOrder: (customer) => this.orderSystem.createOrder(customer),
       onCustomerSelected: () => {
         this.handleCustomerTap();
       },
+      onCustomerExpired: (customerState) => {
+        this.handleCustomerExpired(customerState);
+      },
     });
 
-    this.customerSystem.spawnNextCustomer();
+    this.hud.setStartDayVisible(true);
     this.hud.setMessage(this.getLoadedSaveMessage(loadedSave.status));
+    this.hud.updateFoodState('Tap Start Day when ready.');
     this.showOfflineRewardIfAvailable(loadedSave);
   }
 
@@ -100,84 +137,226 @@ export class MainScene extends Phaser.Scene {
     const endedRush = this.rushHourSystem.update(delta);
     this.hud.updateRushState(this.rushHourSystem.getState());
 
+    if (this.daySystem.getState().isActive) {
+      this.customerSystem.update(delta);
+    }
+
     if (endedRush) {
+      this.audioSystem.play('rush_end');
       this.hud.setMessage('Rush Hour ended. Normal rewards and pacing are back.');
+      this.showFloatingText('Rush Ended', GAME_WIDTH / 2, 300, '#ffd166');
     }
   }
 
-  private handleFoodStationTap(): void {
+  private handleStartDayRequest(): void {
+    this.audioSystem.unlock();
+    this.audioSystem.play('button_tap');
+
+    if (this.daySystem.getState().isActive) {
+      this.hud.setMessage('Day already running. Finish these customers first.');
+      return;
+    }
+
+    this.daySummaryPanel?.destroy();
+    this.daySummaryPanel = undefined;
+    this.foodStation.clearAll();
+    this.customerSystem.clear();
+    this.daySystem.startDay();
+    this.satisfactionSystem.startDay();
+    this.streakSystem.startDay();
+    this.hud.setStartDayVisible(false);
+    this.hud.updateDayState(this.daySystem.getState());
+    this.hud.updateSatisfaction(this.satisfactionSystem.getSatisfaction());
+    this.hud.updateStreak(this.streakSystem.getCurrentStreak(), this.streakSystem.getBestStreak());
+    this.hud.updateFoodState('Read the order. Tap an empty slot to cook.');
+    this.hud.setMessage('Day started. Serve 6 customers before patience runs out.');
+    this.customerSystem.spawnNextCustomer();
+  }
+
+  private handleFoodSlotTap(slotIndex: number): void {
+    this.audioSystem.unlock();
+    const dayState = this.daySystem.getState();
+
+    if (!dayState.isActive) {
+      this.audioSystem.play('button_tap');
+      this.hud.setMessage('Tap Start Day before cooking.');
+      return;
+    }
+
+    const slot = this.foodStation.getSlotSnapshots()[slotIndex];
+
+    if (!slot) {
+      return;
+    }
+
+    if (slot.state === 'ready') {
+      const foodId = this.foodStation.selectReadySlot(slotIndex);
+      this.audioSystem.play('button_tap');
+      this.customerSystem.setActiveCustomerReady(this.foodStation.getSelectedReadyFoodIds().length > 0);
+      this.hud.updateFoodState(this.getSelectedFoodMessage());
+      this.hud.setMessage(foodId ? 'Ready food selected. Tap the customer to serve.' : 'Select ready food to serve.');
+      return;
+    }
+
+    if (slot.state === 'burnt') {
+      this.foodStation.clearSlot(slotIndex);
+      this.updateDayHud();
+      this.audioSystem.play('button_tap');
+      this.hud.updateFoodState('Burnt food cleared.');
+      this.hud.setMessage('Burnt food cleared. Use an empty slot for the next item.');
+      return;
+    }
+
+    if (slot.state === 'cooking') {
+      this.audioSystem.play('button_tap');
+      this.hud.setMessage('That slot is still cooking.');
+      return;
+    }
+
     const order = this.customerSystem.getActiveOrder();
 
     if (!order) {
-      this.hud.setMessage('No customer waiting yet.');
-      this.hud.updateFoodState('Station idle');
+      this.audioSystem.play('button_tap');
+      this.hud.setMessage('No customer waiting. Watch the day counter.');
       return;
     }
 
-    const food = this.findFood(order.foodId);
-    const prepTimeMs = this.upgradeSystem.getAdjustedPrepTime(food);
-    const started = this.foodStation.startPreparing(food, prepTimeMs, () => {
-      this.hud.setMessage(`${food.name} ready. Tap the customer order bubble.`);
-      this.hud.updateFoodState(`${food.name} ready`);
-      this.customerSystem.setActiveCustomerReady(true);
-    });
+    const nextFood = this.getNextNeededFood(order);
 
-    if (started) {
-      this.hud.setMessage(`Preparing ${food.name}...`);
-      this.hud.updateFoodState(`Cooking ${food.name} (${(prepTimeMs / 1000).toFixed(1)}s)`);
-      this.customerSystem.setActiveCustomerReady(false);
+    if (!nextFood) {
+      this.audioSystem.play('button_tap');
+      this.hud.setMessage('All order items are already cooking or ready.');
       return;
     }
 
-    if (this.foodStation.isPreparing()) {
-      this.hud.setMessage('Cooking now. Watch the green bar fill.');
+    const prepTimeMs = this.upgradeSystem.getAdjustedPrepTime(nextFood);
+    const started = this.foodStation.startCooking(
+      slotIndex,
+      nextFood,
+      prepTimeMs,
+      nextFood.readyWindowMs,
+      (_readySlotIndex, readyFood) => {
+        this.audioSystem.play('food_ready');
+        this.hud.setMessage(`${readyFood.name} ready. Tap its slot, then tap the customer.`);
+        this.hud.updateFoodState(`${readyFood.name} ready`);
+      },
+      (_burntSlotIndex, burntFood) => {
+        this.audioSystem.play('button_tap');
+        this.satisfactionSystem.recordBurntFood();
+        this.streakSystem.reset();
+        this.customerSystem.setActiveCustomerReady(this.foodStation.getSelectedReadyFoodIds().length > 0);
+        this.updateDayHud();
+        this.hud.setMessage(`${burntFood.name} burned. Tap burnt slot to clear it.`);
+        this.hud.updateFoodState(`${burntFood.name} burned`);
+        this.showFloatingText('Burnt Food', GAME_WIDTH / 2, 620, '#ffb3b3');
+      },
+    );
+
+    if (!started) {
+      this.audioSystem.play('button_tap');
       return;
     }
 
-    this.hud.setMessage('Food is ready. Tap the customer order bubble.');
+    this.audioSystem.play('food_prep_start');
+    this.hud.updateFoodState(`Cooking ${nextFood.name} (${(prepTimeMs / 1000).toFixed(1)}s)`);
+    this.hud.setMessage(`Cooking ${nextFood.name}. Ready food can burn if ignored.`);
   }
 
   private handleCustomerTap(): void {
-    const preparedFoodId = this.foodStation.getPreparedFoodId();
+    this.audioSystem.unlock();
 
-    if (!preparedFoodId) {
-      this.hud.setMessage('Tap the grill first to prepare this order.');
+    if (!this.daySystem.getState().isActive) {
+      this.audioSystem.play('button_tap');
+      this.hud.setMessage('Tap Start Day first.');
       return;
     }
 
-    const served = this.customerSystem.tryServeActiveCustomer(preparedFoodId);
+    const activeCustomer = this.customerSystem.getActiveCustomer();
+    const order = activeCustomer?.order;
 
-    if (!served.success) {
-      this.hud.setMessage('That order is not ready yet.');
+    if (!activeCustomer || !order) {
+      this.audioSystem.play('button_tap');
+      this.hud.setMessage('No customer waiting yet.');
       return;
     }
 
-    this.foodStation.consumePreparedFood(preparedFoodId);
+    const selectedFoodIds = this.foodStation.getSelectedReadyFoodIds();
 
-    const food = this.findFood(served.foodId);
-    const customer = CUSTOMERS.find((candidate) => candidate.id === served.customerTypeId);
-
-    if (!customer) {
+    if (selectedFoodIds.length === 0) {
+      this.audioSystem.play('button_tap');
+      this.hud.setMessage('Tap a ready food slot before serving.');
       return;
     }
 
-    const coinsEarned = this.economySystem.awardCustomerOrder(
-      food,
-      customer,
-      this.rushHourSystem.getRewardMultiplier(),
-      this.upgradeSystem.getRewardBonus(),
+    const orderCheck = this.orderSystem.checkOrder(order, selectedFoodIds);
+
+    if (!orderCheck.isCorrect) {
+      this.handleWrongOrder();
+      return;
+    }
+
+    const servedCustomer = this.customerSystem.removeActiveCustomerAsServed();
+
+    if (!servedCustomer) {
+      return;
+    }
+
+    this.foodStation.consumeSelectedReadyFoodIds();
+    const isFastServe = servedCustomer.remainingPatienceMs / servedCustomer.patienceMs >= 0.55;
+    const currentStreak = this.streakSystem.recordCorrectOrder();
+    const baseCoins = this.awardCorrectOrderBaseCoins(order);
+    const tipsEarned = this.awardTipCoins(baseCoins, servedCustomer, isFastServe);
+    const progress = this.progressionSystem.awardServiceProgress(this.getServiceXp(order));
+    const satisfaction = this.satisfactionSystem.recordCorrectServe(isFastServe);
+    const summary = this.daySystem.recordServed(
+      baseCoins + tipsEarned,
+      tipsEarned,
+      satisfaction,
+      this.streakSystem.getBestStreak(),
     );
-    const progress = this.progressionSystem.awardServiceProgress(this.getServiceXp(food));
+
     this.saveGame();
-    this.hud.updateCoins(this.economySystem.getCoins());
-    this.renderProgression();
-    this.renderUpgradePanel();
-    this.hud.updateFoodState('Station idle');
-    this.hud.setMessage(this.getServedMessage(coinsEarned, progress.didLevelUp, progress.currentLevel));
-    this.showFloatingText(`+${coinsEarned} coins`, GAME_WIDTH / 2, 470, '#7bd88f');
+    this.updatePostServiceHud();
+    this.audioSystem.play('serve_success');
+    this.audioSystem.play('coin_gain');
+    this.showFloatingText(`+${baseCoins + tipsEarned} coins`, GAME_WIDTH / 2, 470, '#7bd88f');
+
+    if (isFastServe) {
+      this.showFloatingText(currentStreak > 1 ? `Fast Streak x${currentStreak}` : 'Fast Serve', GAME_WIDTH / 2, 420, '#ffd166');
+    }
 
     if (progress.didLevelUp) {
-      this.showFloatingText(`Level ${progress.currentLevel}`, GAME_WIDTH / 2, 380, '#ffd166');
+      this.audioSystem.play('level_up');
+      this.showFloatingText(`Level ${progress.currentLevel}`, GAME_WIDTH / 2, 360, '#ffd166');
+    }
+
+    if (summary) {
+      this.handleDayComplete(summary);
+      return;
+    }
+
+    this.hud.setMessage(this.getServedMessage(baseCoins, tipsEarned, isFastServe, progress.didLevelUp, progress.currentLevel));
+    this.hud.updateFoodState('Next customer incoming.');
+    this.customerSystem.scheduleNextCustomer(
+      this.rushHourSystem.getSpawnIntervalMultiplier(),
+      this.upgradeSystem.getSpawnDelayReductionMs(),
+    );
+  }
+
+  private handleWrongOrder(): void {
+    this.foodStation.consumeSelectedReadyFoodIds();
+    this.customerSystem.removeActiveCustomerAsFailed();
+    const satisfaction = this.satisfactionSystem.recordWrongOrder();
+    this.streakSystem.reset();
+    const summary = this.daySystem.recordMissed(satisfaction, this.streakSystem.getBestStreak());
+    this.updateDayHud();
+    this.hud.updateFoodState('Wrong order served.');
+    this.hud.setMessage('Wrong Order. Check the bubble before serving.');
+    this.showFloatingText('Wrong Order', GAME_WIDTH / 2, 470, '#ffb3b3');
+
+    if (summary) {
+      this.handleDayComplete(summary);
+      return;
     }
 
     this.customerSystem.scheduleNextCustomer(
@@ -186,7 +365,48 @@ export class MainScene extends Phaser.Scene {
     );
   }
 
+  private handleCustomerExpired(_customerState: CustomerState): void {
+    const satisfaction = this.satisfactionSystem.recordCustomerLeft();
+    this.streakSystem.reset();
+    const summary = this.daySystem.recordMissed(satisfaction, this.streakSystem.getBestStreak());
+    this.updateDayHud();
+    this.hud.updateFoodState('Customer left.');
+    this.hud.setMessage('Customer Left. Serve before patience runs out.');
+    this.showFloatingText('Customer Left', GAME_WIDTH / 2, 470, '#ffb3b3');
+
+    if (summary) {
+      this.handleDayComplete(summary);
+      return;
+    }
+
+    this.customerSystem.scheduleNextCustomer(
+      this.rushHourSystem.getSpawnIntervalMultiplier(),
+      this.upgradeSystem.getSpawnDelayReductionMs(),
+    );
+  }
+
+  private handleDayComplete(summary: DaySummary): void {
+    this.foodStation.clearAll();
+    this.customerSystem.clear();
+    this.customerSystem.setActiveCustomerReady(false);
+    this.saveGame();
+    this.hud.setStartDayVisible(true);
+    this.hud.updateDayState(this.daySystem.getState());
+    this.hud.updateFoodState('Day complete.');
+    this.hud.setMessage('Review the day summary, then start another day.');
+    this.daySummaryPanel?.destroy();
+    this.daySummaryPanel = new DaySummaryPanel(this, summary, () => {
+      this.audioSystem.unlock();
+      this.audioSystem.play('button_tap');
+      this.daySummaryPanel?.destroy();
+      this.daySummaryPanel = undefined;
+      this.hud.setMessage('Tap Start Day for another short shift.');
+    });
+  }
+
   private handleBuyUpgrade(upgradeId: string): void {
+    this.audioSystem.unlock();
+    this.audioSystem.play('button_tap');
     const purchase = this.upgradeSystem.purchaseUpgrade(
       upgradeId,
       this.economySystem,
@@ -203,10 +423,13 @@ export class MainScene extends Phaser.Scene {
     this.hud.updateCoins(this.economySystem.getCoins());
     this.renderUpgradePanel();
     this.hud.setMessage(`Upgrade purchased. Level ${purchase.level}.`);
+    this.audioSystem.play('upgrade_bought');
     this.showFloatingText('Upgrade Bought', GAME_WIDTH / 2, 1012, '#7bd88f');
   }
 
   private handleRushHourRequest(): void {
+    this.audioSystem.unlock();
+    this.audioSystem.play('button_tap');
     const started = this.rushHourSystem.startRushHour();
     this.hud.updateRushState(this.rushHourSystem.getState());
 
@@ -215,16 +438,21 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    this.hud.setMessage('Rush Hour active: serve fast for 2x coins.');
+    this.hud.setMessage('Rush Hour active: correct orders earn 2x base coins.');
+    this.audioSystem.play('rush_start');
     this.showFloatingText('Rush Hour', GAME_WIDTH / 2, 300, '#ffd166');
   }
 
   private handleResetSave(): void {
+    this.audioSystem.unlock();
+    this.audioSystem.play('button_tap');
     this.saveSystem.reset();
     this.scene.restart();
   }
 
   private handleHelpRequest(): void {
+    this.audioSystem.unlock();
+    this.audioSystem.play('button_tap');
     if (this.helpPanel) {
       return;
     }
@@ -235,7 +463,18 @@ export class MainScene extends Phaser.Scene {
     });
   }
 
+  private handleSoundToggle(): void {
+    this.audioSystem.unlock();
+    const nextEnabled = !this.audioSystem.isEnabled();
+    this.audioSystem.setEnabled(nextEnabled);
+    this.hud.updateSoundState(nextEnabled);
+    this.saveGame();
+    this.hud.setMessage(nextEnabled ? 'Sound enabled.' : 'Sound muted.');
+    this.audioSystem.play('button_tap');
+  }
+
   private handleCollectOfflineReward(): void {
+    this.audioSystem.unlock();
     if (!this.pendingOfflineReward || !this.pendingOfflineReward.shouldReward) {
       this.offlineRewardPanel?.destroy();
       this.offlineRewardPanel = undefined;
@@ -250,7 +489,78 @@ export class MainScene extends Phaser.Scene {
     this.hud.updateCoins(this.economySystem.getCoins());
     this.renderUpgradePanel();
     this.hud.setMessage(`Offline earnings collected. +${coinsAwarded} coins.`);
+    this.audioSystem.play('coin_gain');
     this.showFloatingText(`+${coinsAwarded} coins`, GAME_WIDTH / 2, 430, '#ffd166');
+  }
+
+  private awardCorrectOrderBaseCoins(order: CustomerOrder): number {
+    const rewardMultiplier = this.rushHourSystem.getRewardMultiplier();
+    const rewardBonus = this.upgradeSystem.getRewardBonus();
+    const rawCoins = order.items.reduce((total, item) => {
+      const food = this.findFood(item.foodId);
+      return total + food.baseReward + rewardBonus;
+    }, 0);
+
+    return this.economySystem.awardCoins(Math.round(rawCoins * rewardMultiplier));
+  }
+
+  private awardTipCoins(baseCoins: number, customerState: CustomerState, isFastServe: boolean): number {
+    if (!isFastServe) {
+      return 0;
+    }
+
+    const customerTipBonus = Math.max(0, customerState.customer.tipMultiplier - 1);
+    const tipMultiplier = this.streakSystem.getTipMultiplier() + customerTipBonus;
+    return this.economySystem.awardCoins(Math.round(baseCoins * 0.18 * tipMultiplier));
+  }
+
+  private getNextNeededFood(order: CustomerOrder): FoodDefinition | undefined {
+    const expectedCounts = this.createFoodCountMap(order.items.map((item) => item.foodId));
+    const currentCounts = this.createFoodCountMap(
+      this.foodStation
+        .getSlotSnapshots()
+        .filter((slot) => slot.foodId && (slot.state === 'cooking' || slot.state === 'ready'))
+        .map((slot) => slot.foodId as string),
+    );
+
+    const nextItem = order.items.find((item) => {
+      const expectedCount = expectedCounts.get(item.foodId) ?? 0;
+      const currentCount = currentCounts.get(item.foodId) ?? 0;
+      return currentCount < expectedCount;
+    });
+
+    return nextItem ? this.findFood(nextItem.foodId) : undefined;
+  }
+
+  private createFoodCountMap(foodIds: readonly string[]): Map<string, number> {
+    return foodIds.reduce((counts, foodId) => {
+      counts.set(foodId, (counts.get(foodId) ?? 0) + 1);
+      return counts;
+    }, new Map<string, number>());
+  }
+
+  private updatePostServiceHud(): void {
+    this.hud.updateCoins(this.economySystem.getCoins());
+    this.renderProgression();
+    this.renderUpgradePanel();
+    this.updateDayHud();
+  }
+
+  private updateDayHud(): void {
+    this.hud.updateDayState(this.daySystem.getState());
+    this.hud.updateSatisfaction(this.satisfactionSystem.getSatisfaction());
+    this.hud.updateStreak(this.streakSystem.getCurrentStreak(), this.streakSystem.getBestStreak());
+    this.customerSystem.setActiveCustomerReady(this.foodStation.getSelectedReadyFoodIds().length > 0);
+  }
+
+  private getSelectedFoodMessage(): string {
+    const selectedFoodNames = this.foodStation.getSelectedReadyFoodIds().map((foodId) => this.findFood(foodId).name);
+
+    if (selectedFoodNames.length === 0) {
+      return 'No ready food selected';
+    }
+
+    return `Selected: ${selectedFoodNames.join(' + ')}`;
   }
 
   private renderUpgradePanel(): void {
@@ -297,6 +607,9 @@ export class MainScene extends Phaser.Scene {
       upgrades: this.upgradeSystem.getUpgradeLevels(),
       stallLevel: this.progressionSystem.getStallLevel(),
       stallXp: this.progressionSystem.getStallXp(),
+      settings: {
+        soundEnabled: this.audioSystem.isEnabled(),
+      },
     });
   }
 
@@ -314,26 +627,27 @@ export class MainScene extends Phaser.Scene {
     return FOODS.filter((food) => food.unlockStallLevel <= stallLevel).length;
   }
 
-  private getServiceXp(food: FoodDefinition): number {
-    return 12 + food.unlockStallLevel * 3;
+  private getServiceXp(order: CustomerOrder): number {
+    const highestUnlockLevel = Math.max(...order.items.map((item) => this.findFood(item.foodId).unlockStallLevel));
+    return 12 + highestUnlockLevel * 3 + (order.items.length - 1) * 4;
   }
 
   private getLoadedSaveMessage(status: string): string {
     if (status === 'repaired') {
-      return 'Save repaired. Tap the grill to prepare the next order.';
+      return 'Save repaired. Tap Start Day to begin the cooking shift.';
     }
 
     if (status === 'reset') {
-      return 'Save reset. Tap the grill to prepare the next order.';
+      return 'Save reset. Tap Start Day to begin.';
     }
 
-    return 'Tap the grill to prepare the customer order.';
+    return 'Tap Start Day. Then cook the exact customer order before patience runs out.';
   }
 
   private getPurchaseFailureMessage(reason: string): string {
     if (reason === 'not_enough_coins') {
       this.showFloatingText('Not Enough Coins', GAME_WIDTH / 2, 1012, '#ffb3b3');
-      return 'Serve more customers to afford the grill upgrade.';
+      return 'Serve more correct orders to afford that upgrade.';
     }
 
     if (reason === 'max_level') {
@@ -372,16 +686,28 @@ export class MainScene extends Phaser.Scene {
     });
   }
 
-  private getServedMessage(coinsEarned: number, didLevelUp: boolean, stallLevel: number): string {
+  private getServedMessage(
+    baseCoins: number,
+    tipsEarned: number,
+    isFastServe: boolean,
+    didLevelUp: boolean,
+    stallLevel: number,
+  ): string {
     if (didLevelUp) {
       return `Stall level ${stallLevel}! New menu options unlocked.`;
     }
 
+    const tipText = tipsEarned > 0 ? ` +${tipsEarned} tip` : '';
+
     if (this.rushHourSystem.isActive()) {
-      return `Rush serve. +${coinsEarned} coins.`;
+      return `Rush serve. +${baseCoins} coins${tipText}.`;
     }
 
-    return `Served order. +${coinsEarned} coins.`;
+    if (isFastServe) {
+      return `Fast Serve. +${baseCoins} coins${tipText}.`;
+    }
+
+    return `Correct order. +${baseCoins} coins.`;
   }
 
   private createMarketBackdrop(): void {
@@ -391,16 +717,16 @@ export class MainScene extends Phaser.Scene {
     this.add.rectangle(GAME_WIDTH / 2, 1085, GAME_WIDTH, 390, COLORS.street);
 
     this.add
-      .text(GAME_WIDTH / 2, 108, 'Kingston Night Market', {
+      .text(GAME_WIDTH / 2, 150, 'Kingston Night Market', {
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '46px',
+        fontSize: '40px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
 
     this.add
-      .text(GAME_WIDTH / 2, 160, 'Street Food Empire', {
+      .text(GAME_WIDTH / 2, 194, 'Street Food Empire', {
         color: '#ffd166',
         fontFamily: 'Arial, sans-serif',
         fontSize: '24px',
@@ -409,7 +735,7 @@ export class MainScene extends Phaser.Scene {
 
     for (let index = 0; index < 9; index += 1) {
       const x = 36 + index * 84;
-      const y = 245 + (index % 2) * 28;
+      const y = 285 + (index % 2) * 28;
       this.add.circle(x, y, 8, COLORS.warning, 0.9);
       this.add.line(x, y, 0, 0, 48, 40, 0xfff0a8, 0.32).setOrigin(0, 0);
     }

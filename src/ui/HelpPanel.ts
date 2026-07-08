@@ -25,7 +25,7 @@ export class HelpPanel {
       .text(
         GAME_WIDTH / 2,
         510,
-        'Tap the grill to cook the order\nWhen food is ready, tap the customer\nEarn coins and stall XP\nBuy upgrades when buttons turn green\nRush Hour gives faster customers and bonus coins',
+        'Tap Start Day for a short shift\nRead the customer order bubble\nTap empty grill slots to cook needed items\nTap ready food, then tap the customer\nFast correct serves earn tips and streaks\nBurnt, wrong, or late orders hurt satisfaction\nRush Hour speeds up customers and boosts base coins',
         {
           align: 'center',
           color: '#fff7df',

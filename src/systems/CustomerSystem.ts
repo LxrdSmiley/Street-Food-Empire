@@ -6,29 +6,50 @@ import type {
   CustomerOrder,
   CustomerSpawnConfig,
   CustomerState,
-  FoodDefinition,
-  ServeResult,
 } from '../types/gameTypes';
 
 export class CustomerSystem {
   private readonly scene: Phaser.Scene;
   private readonly customers: readonly CustomerDefinition[];
-  private readonly foods: readonly FoodDefinition[];
   private readonly spawnPoint: Phaser.Math.Vector2;
   private readonly getStallLevel: () => number;
   private readonly getPatienceBonusMs: () => number;
+  private readonly createOrder: (customer: CustomerDefinition) => CustomerOrder;
   private readonly onCustomerSelected: () => void;
+  private readonly onCustomerExpired: (customerState: CustomerState) => void;
   private activeCustomer?: CustomerState;
   private spawnTimer?: Phaser.Time.TimerEvent;
 
   constructor(config: CustomerSpawnConfig) {
     this.scene = config.scene;
     this.customers = config.customers;
-    this.foods = config.foods;
     this.spawnPoint = new Phaser.Math.Vector2(config.spawnPoint.x, config.spawnPoint.y);
     this.getStallLevel = config.getStallLevel;
     this.getPatienceBonusMs = config.getPatienceBonusMs;
+    this.createOrder = config.createOrder;
     this.onCustomerSelected = config.onCustomerSelected;
+    this.onCustomerExpired = config.onCustomerExpired;
+  }
+
+  update(deltaMs: number): void {
+    if (!this.activeCustomer) {
+      return;
+    }
+
+    this.activeCustomer.remainingPatienceMs = Math.max(0, this.activeCustomer.remainingPatienceMs - deltaMs);
+    this.activeCustomer.view.updatePatience(
+      this.activeCustomer.remainingPatienceMs,
+      this.activeCustomer.patienceMs,
+    );
+
+    if (this.activeCustomer.remainingPatienceMs > 0) {
+      return;
+    }
+
+    const expiredCustomer = this.activeCustomer;
+    this.activeCustomer = undefined;
+    expiredCustomer.view.playLeftAndDestroy();
+    this.onCustomerExpired(expiredCustomer);
   }
 
   spawnNextCustomer(): void {
@@ -40,10 +61,8 @@ export class CustomerSystem {
     const availableCustomers = this.customers.filter(
       (customer) => customer.availableFromStallLevel <= stallLevel,
     );
-    const availableFoods = this.foods.filter((food) => food.unlockStallLevel <= stallLevel);
     const customer = Phaser.Utils.Array.GetRandom(availableCustomers.length > 0 ? availableCustomers : [...this.customers]);
-    const food = Phaser.Utils.Array.GetRandom(availableFoods.length > 0 ? availableFoods : [...this.foods]);
-    const order: CustomerOrder = { foodId: food.id, label: food.name };
+    const order = this.createOrder(customer);
     const patienceMs = customer.patienceMs + this.getPatienceBonusMs();
 
     const view = new Customer(
@@ -59,14 +78,21 @@ export class CustomerSystem {
     this.activeCustomer = {
       id: Phaser.Utils.String.UUID(),
       customerTypeId: customer.id,
+      customer,
       order,
       view,
       isReadyToServe: false,
+      patienceMs,
+      remainingPatienceMs: patienceMs,
     };
   }
 
   getActiveOrder(): CustomerOrder | undefined {
     return this.activeCustomer?.order;
+  }
+
+  getActiveCustomer(): CustomerState | undefined {
+    return this.activeCustomer;
   }
 
   setActiveCustomerReady(isReady: boolean): void {
@@ -78,20 +104,26 @@ export class CustomerSystem {
     this.activeCustomer.view.setReadyToServe(isReady);
   }
 
-  tryServeActiveCustomer(foodId: string): ServeResult {
-    if (!this.activeCustomer || this.activeCustomer.order.foodId !== foodId) {
-      return { success: false };
+  removeActiveCustomerAsServed(): CustomerState | undefined {
+    if (!this.activeCustomer) {
+      return undefined;
     }
 
     const servedCustomer = this.activeCustomer;
     servedCustomer.view.playServedAndDestroy();
     this.activeCustomer = undefined;
+    return servedCustomer;
+  }
 
-    return {
-      success: true,
-      customerTypeId: servedCustomer.customerTypeId,
-      foodId: servedCustomer.order.foodId,
-    };
+  removeActiveCustomerAsFailed(): CustomerState | undefined {
+    if (!this.activeCustomer) {
+      return undefined;
+    }
+
+    const failedCustomer = this.activeCustomer;
+    failedCustomer.view.playLeftAndDestroy();
+    this.activeCustomer = undefined;
+    return failedCustomer;
   }
 
   scheduleNextCustomer(spawnIntervalMultiplier = 1, spawnDelayReductionMs = 0): void {
@@ -105,5 +137,12 @@ export class CustomerSystem {
     this.spawnTimer = this.scene.time.delayedCall(delayMs, () => {
       this.spawnNextCustomer();
     });
+  }
+
+  clear(): void {
+    this.spawnTimer?.remove(false);
+    this.spawnTimer = undefined;
+    this.activeCustomer?.view.destroy();
+    this.activeCustomer = undefined;
   }
 }

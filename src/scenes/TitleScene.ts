@@ -1,12 +1,17 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, SCENE_KEYS } from '../config/constants';
 import { UPGRADES } from '../data/upgrades';
+import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 import { formatCoins } from '../utils/format';
+import type { GameSnapshot } from '../types/gameTypes';
 
 export class TitleScene extends Phaser.Scene {
   private saveSystem!: SaveSystem;
+  private audioSystem!: AudioSystem;
+  private currentSnapshot!: GameSnapshot;
   private statusText?: Phaser.GameObjects.Text;
+  private soundButtonText?: Phaser.GameObjects.Text;
 
   constructor() {
     super(SCENE_KEYS.TITLE);
@@ -15,6 +20,8 @@ export class TitleScene extends Phaser.Scene {
   create(): void {
     this.saveSystem = new SaveSystem(UPGRADES);
     const loadedSave = this.saveSystem.load();
+    this.currentSnapshot = loadedSave.snapshot;
+    this.audioSystem = new AudioSystem(loadedSave.snapshot.settings.soundEnabled);
 
     this.createBackdrop();
 
@@ -33,7 +40,7 @@ export class TitleScene extends Phaser.Scene {
       .text(
         GAME_WIDTH / 2,
         326,
-        'A tiny night-market cart. Fast orders. Bigger upgrades. One clean prototype loop.',
+        'Run a short night-market shift. Read orders, cook the right items, and serve before patience runs out.',
         {
           align: 'center',
           color: '#ffd166',
@@ -46,7 +53,7 @@ export class TitleScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(GAME_WIDTH / 2, 432, 'Tap grill -> Tap customer -> Buy upgrades', {
+      .text(GAME_WIDTH / 2, 432, 'Start Day -> Cook order -> Select ready food -> Serve customer', {
         align: 'center',
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
@@ -71,16 +78,33 @@ export class TitleScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.createButton(GAME_WIDTH / 2, 666, 354, 78, 'Start / Continue', COLORS.success, () => {
+      this.audioSystem.unlock();
+      this.audioSystem.play('button_tap');
       this.scene.start(SCENE_KEYS.MAIN);
     });
 
     this.createButton(GAME_WIDTH / 2, 768, 280, 68, 'Reset Save', 0x3b3f4d, () => {
-      this.saveSystem.reset();
+      this.audioSystem.unlock();
+      this.audioSystem.play('button_tap');
+      const resetSave = this.saveSystem.reset();
+      this.currentSnapshot = {
+        coins: resetSave.coins,
+        upgrades: resetSave.upgrades,
+        stallLevel: resetSave.stallLevel,
+        stallXp: resetSave.stallXp,
+        settings: resetSave.settings,
+      };
+      this.audioSystem.setEnabled(resetSave.settings.soundEnabled);
+      this.soundButtonText?.setText(this.getSoundLabel());
       this.statusText?.setText('Save reset. Start when ready.');
     });
 
+    this.soundButtonText = this.createButton(GAME_WIDTH / 2, 852, 250, 58, this.getSoundLabel(), 0x3b3f4d, () => {
+      this.handleSoundToggle();
+    });
+
     this.statusText = this.add
-      .text(GAME_WIDTH / 2, 856, this.getSaveStatusMessage(loadedSave.status), {
+      .text(GAME_WIDTH / 2, 602, this.getSaveStatusMessage(loadedSave.status), {
         align: 'center',
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
@@ -98,11 +122,11 @@ export class TitleScene extends Phaser.Scene {
     label: string,
     fillColor: number,
     onSelect: () => void,
-  ): void {
+  ): Phaser.GameObjects.Text {
     const button = this.add.rectangle(x, y, width, height, fillColor, 1);
     button.setStrokeStyle(3, COLORS.hudStroke, 0.9);
 
-    this.add
+    const buttonText = this.add
       .text(x, y, label, {
         align: 'center',
         color: '#fff7df',
@@ -118,6 +142,28 @@ export class TitleScene extends Phaser.Scene {
       .on(Phaser.Input.Events.POINTER_DOWN, () => {
         onSelect();
       });
+
+    return buttonText;
+  }
+
+  private handleSoundToggle(): void {
+    this.audioSystem.unlock();
+    const nextEnabled = !this.audioSystem.isEnabled();
+    this.audioSystem.setEnabled(nextEnabled);
+    this.currentSnapshot = {
+      ...this.currentSnapshot,
+      settings: {
+        soundEnabled: nextEnabled,
+      },
+    };
+    this.saveSystem.save(this.currentSnapshot);
+    this.soundButtonText?.setText(this.getSoundLabel());
+    this.statusText?.setText(nextEnabled ? 'Sound enabled.' : 'Sound muted.');
+    this.audioSystem.play('button_tap');
+  }
+
+  private getSoundLabel(): string {
+    return this.audioSystem.isEnabled() ? 'Sound: On' : 'Sound: Off';
   }
 
   private getSaveStatusMessage(status: string): string {
