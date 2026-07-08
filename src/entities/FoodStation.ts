@@ -22,8 +22,18 @@ const PROGRESS_WIDTH = 104;
 
 export class FoodStation extends Phaser.GameObjects.Container {
   private readonly slots: FoodSlotView[] = [];
+  private trashBase!: Phaser.GameObjects.Rectangle;
+  private trashIcon!: Phaser.GameObjects.Text;
+  private trashLabel!: Phaser.GameObjects.Text;
+  private trashZone!: Phaser.GameObjects.Zone;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, onSlotSelected: (slotIndex: number) => void) {
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    onSlotSelected: (slotIndex: number) => void,
+    onDiscard: (foodIds: string[]) => void
+  ) {
     super(scene, x, y);
 
     const hitZone = scene.add.zone(0, 0, 440, 284).setInteractive({ useHandCursor: false });
@@ -37,7 +47,7 @@ export class FoodStation extends Phaser.GameObjects.Container {
       })
       .setOrigin(0.5);
     const hint = scene.add
-      .text(0, 92, 'Tap empty slot to cook. Tap ready slot to select.', {
+      .text(0, 92, 'Tap empty slot to cook. Tap ready/cooking slot to select.', {
         align: 'center',
         color: '#ffd166',
         fontFamily: 'Arial, sans-serif',
@@ -49,7 +59,34 @@ export class FoodStation extends Phaser.GameObjects.Container {
 
     this.add([hitZone, base, label, hint]);
 
-    [-92, 92].forEach((slotX, index) => {
+    // Trash/Discard Button in the center (between slots shifted to -110 / 110)
+    this.trashBase = scene.add.rectangle(0, -2, 54, 72, 0xe85d5d, 1).setStrokeStyle(3, 0xffb3b3);
+    this.trashIcon = scene.add.text(0, -14, '🗑️', { fontSize: '24px' }).setOrigin(0.5);
+    this.trashLabel = scene.add.text(0, 16, 'DISCARD', {
+      color: '#fff7df',
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '10px',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    this.trashZone = scene.add.zone(0, -2, 60, 80);
+
+    // Interactive hover behavior for Trash Button
+    this.trashZone.on(Phaser.Input.Events.POINTER_OVER, () => {
+      this.trashBase.setFillStyle(0xff7373, 1);
+    });
+    this.trashZone.on(Phaser.Input.Events.POINTER_OUT, () => {
+      this.trashBase.setFillStyle(0xe85d5d, 1);
+    });
+    this.trashZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      const discarded = this.discardSelectedSlots();
+      if (discarded.length > 0) {
+        onDiscard(discarded);
+      }
+    });
+
+    this.add([this.trashBase, this.trashIcon, this.trashLabel, this.trashZone]);
+
+    [-110, 110].forEach((slotX, index) => {
       const slotZone = scene.add.zone(slotX, -2, SLOT_WIDTH + 28, SLOT_HEIGHT + 28).setInteractive({ useHandCursor: true });
       const slotBase = scene.add.rectangle(slotX, -2, SLOT_WIDTH, SLOT_HEIGHT, 0x181a21, 1).setStrokeStyle(4, 0x6f7785);
       const plate = scene.add.ellipse(slotX, -14, 96, 48, 0xfff7df, 1).setStrokeStyle(2, 0x11131e);
@@ -129,6 +166,7 @@ export class FoodStation extends Phaser.GameObjects.Container {
       slot.state = 'ready';
       slot.progressBar.width = PROGRESS_WIDTH;
       this.renderSlot(slotIndex);
+      this.updateTrashButtonVisuals();
       onReady(slotIndex, food);
       slot.burnTimer = this.scene.time.delayedCall(readyWindowMs, () => {
         if (slot.state !== 'ready') {
@@ -138,23 +176,26 @@ export class FoodStation extends Phaser.GameObjects.Container {
         slot.state = 'burnt';
         slot.selected = false;
         this.renderSlot(slotIndex);
+        this.updateTrashButtonVisuals();
         onBurnt(slotIndex, food);
       });
     });
 
     this.renderSlot(slotIndex);
+    this.updateTrashButtonVisuals();
     return true;
   }
 
   selectReadySlot(slotIndex: number): string | undefined {
     const slot = this.slots[slotIndex];
 
-    if (!slot || slot.state !== 'ready' || !slot.foodId) {
+    if (!slot || (slot.state !== 'ready' && slot.state !== 'cooking') || !slot.foodId) {
       return undefined;
     }
 
     slot.selected = !slot.selected;
     this.renderSlot(slotIndex);
+    this.updateTrashButtonVisuals();
     return slot.foodId;
   }
 
@@ -174,6 +215,7 @@ export class FoodStation extends Phaser.GameObjects.Container {
     slot.selected = false;
     slot.progressBar.width = 0;
     this.renderSlot(slotIndex);
+    this.updateTrashButtonVisuals();
   }
 
   clearAll(): void {
@@ -198,6 +240,48 @@ export class FoodStation extends Phaser.GameObjects.Container {
       .map((slot) => slot.foodId as string);
   }
 
+  getSelectedReadyFoodNames(): string[] {
+    return this.slots
+      .filter((slot) => slot.state === 'ready' && slot.selected && slot.foodName)
+      .map((slot) => slot.foodName as string);
+  }
+
+  getSelectedCookingFoodNames(): string[] {
+    return this.slots
+      .filter((slot) => slot.state === 'cooking' && slot.selected && slot.foodName)
+      .map((slot) => slot.foodName as string);
+  }
+
+  hasSelectedSlot(): boolean {
+    return this.slots.some((slot) => slot.selected && (slot.state === 'ready' || slot.state === 'cooking'));
+  }
+
+  private updateTrashButtonVisuals(): void {
+    const hasSelected = this.hasSelectedSlot();
+    const alpha = hasSelected ? 1.0 : 0.4;
+    this.trashBase.setAlpha(alpha);
+    this.trashIcon.setAlpha(alpha);
+    this.trashLabel.setAlpha(alpha);
+    if (hasSelected) {
+      this.trashZone.setInteractive({ useHandCursor: true });
+    } else {
+      this.trashZone.disableInteractive();
+    }
+  }
+
+  discardSelectedSlots(): string[] {
+    const discardedFoodIds: string[] = [];
+    this.slots.forEach((slot, index) => {
+      if (slot.selected && (slot.state === 'ready' || slot.state === 'cooking')) {
+        if (slot.foodId) {
+          discardedFoodIds.push(slot.foodId);
+        }
+        this.clearSlot(index);
+      }
+    });
+    return discardedFoodIds;
+  }
+
   getSlotSnapshots(): FoodSlotSnapshot[] {
     return this.slots.map((slot, index) => ({
       index,
@@ -214,6 +298,7 @@ export class FoodStation extends Phaser.GameObjects.Container {
     this.slots.forEach((_slot, index) => {
       this.renderSlot(index);
     });
+    this.updateTrashButtonVisuals();
   }
 
   private renderSlot(slotIndex: number): void {

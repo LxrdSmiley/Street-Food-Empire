@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.2.1
+
+### Added
+- **Trash/Discard Button:** Shifted grill slot coordinates outward to create a 66px center channel containing a Trash/Discard button. Allows players to select cooking/ready slots and discard them immediately.
+- **Ternary Match Tags:** Upgraded active customer bubble labels to support `'Waiting'` (gray/brown), `'Order Mismatch'` (soft red), and `'Ready to Serve!'` (vibrant green) indicators to guide serving inputs.
+- **QoL Feedbacks:** Added immediate floating text notifications (`'Discarded'`, `'Burnt cleared'`, `'No food selected'`) to make game loops highly responsive.
+
+### Changed
+- Shifted grill slot centers from `-92`/`92` to `-110`/`110`.
+- Enabled selecting slots in the `cooking` state to allow aborting errors.
+
 ## v0.2.0
 
 Redesign of the core gameplay loop introducing slot-based cooking and a day-based session system.

@@ -1,4 +1,4 @@
-# Street Food Empire: Kingston Rush QA Checklist - v0.2.0
+# Street Food Empire: Kingston Rush QA Checklist - v0.2.1
 
 Use this checklist before sharing a demo build to verify all core systems, mobile layouts, and save migrations function as expected.
 
@@ -77,7 +77,16 @@ Use this checklist before sharing a demo build to verify all core systems, mobil
 - [ ] Start a day and trigger `Rush Hour`. Confirm it double-rewards base coins and does not freeze the new session loop.
 - [ ] Simulate a save with a timestamp 5 minutes in the past. Reload the game and confirm the `OfflineRewardPanel` welcome back screen appears.
 
-## 11. Mobile Layout Adaptability
+## 11. Discard/Trash Button & Order Matching
+- [ ] Start cooking an item. Tap the cooking slot. Verify it highlights as selected. Tap `DISCARD` button. Verify slot is aborted and cleared immediately.
+- [ ] Cook an item to ready. Tap the ready slot. Verify it highlights as selected. Tap `DISCARD` button. Verify slot is cleared immediately without awarding coins or count progress.
+- [ ] Let food burn. Tap slot directly. Verify it clears.
+- [ ] Select a ready item that mismatches the active customer order. Verify customer tag displays red `Order Mismatch` and `DISCARD` button lights up.
+- [ ] Select items matching active order perfectly. Verify customer tag displays green `Ready to Serve!`.
+- [ ] When no slots are selected, verify the `DISCARD` button is grayed out (`alpha = 0.4`) and non-clickable.
+- [ ] Tap customer to serve with empty tray. Verify floating text `'No food selected'` is shown.
+
+## 12. Mobile Layout Adaptability
 Check the canvas centering and font readability at these viewports:
 - [ ] `360x800`
 - [ ] `393x873`
@@ -85,4 +94,5 @@ Check the canvas centering and font readability at these viewports:
 - [ ] `1080x1920`
 - [ ] Verify HUD texts (coins, satisfaction, day progress, streak) do not overlap.
 - [ ] Verify the two-slot grill labels are clear on smaller viewports.
+- [ ] Verify the `DISCARD` button sits perfectly centered between the slots and is fully readable.
 - [ ] Verify the `DaySummaryPanel` continue button is fully tappable and centered.

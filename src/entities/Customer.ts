@@ -105,9 +105,17 @@ export class Customer extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
-  setReadyToServe(isReady: boolean): void {
-    this.readyText.setText(isReady ? 'Ready selected' : 'Waiting');
-    this.readyText.setColor(isReady ? '#1f7a3c' : '#6b5b46');
+  setReadyToServeState(state: 'waiting' | 'ready' | 'mismatch'): void {
+    if (state === 'ready') {
+      this.readyText.setText('Ready to Serve!');
+      this.readyText.setColor('#7bd88f');
+    } else if (state === 'mismatch') {
+      this.readyText.setText('Order Mismatch');
+      this.readyText.setColor('#ffb3b3');
+    } else {
+      this.readyText.setText('Waiting');
+      this.readyText.setColor('#6b5b46');
+    }
   }
 
   updatePatience(remainingMs: number, totalMs: number): void {

@@ -95,13 +95,13 @@ export class CustomerSystem {
     return this.activeCustomer;
   }
 
-  setActiveCustomerReady(isReady: boolean): void {
+  setActiveCustomerReadyState(state: 'waiting' | 'ready' | 'mismatch'): void {
     if (!this.activeCustomer) {
       return;
     }
 
-    this.activeCustomer.isReadyToServe = isReady;
-    this.activeCustomer.view.setReadyToServe(isReady);
+    this.activeCustomer.isReadyToServe = state === 'ready';
+    this.activeCustomer.view.setReadyToServeState(state);
   }
 
   removeActiveCustomerAsServed(): CustomerState | undefined {

@@ -6,7 +6,7 @@ The player starts with a Jamaican food cart in Kingston Night Market, serves cus
 
 ## Project Status
 
-Playable core cooking vertical slice prototype (`v0.2.0`).
+Playable core cooking loop with discard mechanics and UX feedback (`v0.2.1`).
 
 Implemented now:
 
@@ -15,9 +15,13 @@ Implemented now:
 - Boot, preload, title, and main gameplay scene flow
 - Start / Continue title scene with visible Reset Save
 - In-game Help overlay explaining the core loop
+- v0.2.1 Trash/Discard button for aborting wrong cooking items
+- v0.2.1 Ternary Customer Order Match status bubble indicators
+- v0.2.1 Responsive floating text feedback overlays
 - v0.2.0 core loop redesign featuring slot-based cooking (2 cooking slots)
 - Cooking states: `empty`, `cooking`, `ready`, `burnt`
 - Burnt food management (clearing slot, satisfaction penalty)
+- Day/Session system (6 customer target) and `DaySummaryPanel` showing served/missed, coins, tips, satisfaction %, and best streak
 - Day/Session system (6 customer target) and `DaySummaryPanel` showing served/missed, coins, tips, satisfaction %, and best streak
 - Order logic requesting 1-2 items from unlocked foods
 - Satisfaction system clamped between `[0, 100]` with outcomes for serves/misses/burnt

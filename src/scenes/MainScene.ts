@@ -108,9 +108,17 @@ export class MainScene extends Phaser.Scene {
     });
     this.renderUpgradePanel();
 
-    this.foodStation = new FoodStation(this, GAME_WIDTH / 2, 905, (slotIndex) => {
-      this.handleFoodSlotTap(slotIndex);
-    });
+    this.foodStation = new FoodStation(
+      this,
+      GAME_WIDTH / 2,
+      905,
+      (slotIndex) => {
+        this.handleFoodSlotTap(slotIndex);
+      },
+      (foodIds) => {
+        this.handleFoodDiscard(foodIds);
+      }
+    );
 
     this.customerSystem = new CustomerSystem({
       scene: this,
@@ -189,12 +197,16 @@ export class MainScene extends Phaser.Scene {
       return;
     }
 
-    if (slot.state === 'ready') {
+    if (slot.state === 'ready' || slot.state === 'cooking') {
       const foodId = this.foodStation.selectReadySlot(slotIndex);
       this.audioSystem.play('button_tap');
-      this.customerSystem.setActiveCustomerReady(this.foodStation.getSelectedReadyFoodIds().length > 0);
+      this.updateDayHud();
       this.hud.updateFoodState(this.getSelectedFoodMessage());
-      this.hud.setMessage(foodId ? 'Ready food selected. Tap the customer to serve.' : 'Select ready food to serve.');
+      if (slot.state === 'cooking') {
+        this.hud.setMessage('Cooking item selected. Tap Discard to clear slot.');
+      } else {
+        this.hud.setMessage(foodId ? 'Ready food selected. Tap the customer to serve.' : 'Select ready food to serve.');
+      }
       return;
     }
 
@@ -204,12 +216,7 @@ export class MainScene extends Phaser.Scene {
       this.audioSystem.play('button_tap');
       this.hud.updateFoodState('Burnt food cleared.');
       this.hud.setMessage('Burnt food cleared. Use an empty slot for the next item.');
-      return;
-    }
-
-    if (slot.state === 'cooking') {
-      this.audioSystem.play('button_tap');
-      this.hud.setMessage('That slot is still cooking.');
+      this.showFloatingText('Burnt cleared', GAME_WIDTH / 2, 905, '#ffd166');
       return;
     }
 
@@ -244,7 +251,6 @@ export class MainScene extends Phaser.Scene {
         this.audioSystem.play('button_tap');
         this.satisfactionSystem.recordBurntFood();
         this.streakSystem.reset();
-        this.customerSystem.setActiveCustomerReady(this.foodStation.getSelectedReadyFoodIds().length > 0);
         this.updateDayHud();
         this.hud.setMessage(`${burntFood.name} burned. Tap burnt slot to clear it.`);
         this.hud.updateFoodState(`${burntFood.name} burned`);
@@ -260,6 +266,14 @@ export class MainScene extends Phaser.Scene {
     this.audioSystem.play('food_prep_start');
     this.hud.updateFoodState(`Cooking ${nextFood.name} (${(prepTimeMs / 1000).toFixed(1)}s)`);
     this.hud.setMessage(`Cooking ${nextFood.name}. Ready food can burn if ignored.`);
+  }
+
+  private handleFoodDiscard(foodIds: string[]): void {
+    this.audioSystem.play('button_tap');
+    this.updateDayHud();
+    this.hud.updateFoodState(this.getSelectedFoodMessage());
+    this.hud.setMessage('Discarded unwanted food from grill.');
+    this.showFloatingText('Discarded', GAME_WIDTH / 2, 905, '#ffb3b3');
   }
 
   private handleCustomerTap(): void {
@@ -284,7 +298,8 @@ export class MainScene extends Phaser.Scene {
 
     if (selectedFoodIds.length === 0) {
       this.audioSystem.play('button_tap');
-      this.hud.setMessage('Tap a ready food slot before serving.');
+      this.hud.setMessage('No food selected. Tap a ready food slot first.');
+      this.showFloatingText('No food selected', GAME_WIDTH / 2, 470, '#ffb3b3');
       return;
     }
 
@@ -388,7 +403,7 @@ export class MainScene extends Phaser.Scene {
   private handleDayComplete(summary: DaySummary): void {
     this.foodStation.clearAll();
     this.customerSystem.clear();
-    this.customerSystem.setActiveCustomerReady(false);
+    this.customerSystem.setActiveCustomerReadyState('waiting');
     this.saveGame();
     this.hud.setStartDayVisible(true);
     this.hud.updateDayState(this.daySystem.getState());
@@ -550,17 +565,34 @@ export class MainScene extends Phaser.Scene {
     this.hud.updateDayState(this.daySystem.getState());
     this.hud.updateSatisfaction(this.satisfactionSystem.getSatisfaction());
     this.hud.updateStreak(this.streakSystem.getCurrentStreak(), this.streakSystem.getBestStreak());
-    this.customerSystem.setActiveCustomerReady(this.foodStation.getSelectedReadyFoodIds().length > 0);
+    
+    const order = this.customerSystem.getActiveOrder();
+    const selectedFoodIds = this.foodStation.getSelectedReadyFoodIds();
+    if (!order || selectedFoodIds.length === 0) {
+      this.customerSystem.setActiveCustomerReadyState('waiting');
+    } else {
+      const isCorrectMatch = this.orderSystem.checkOrder(order, selectedFoodIds).isCorrect;
+      this.customerSystem.setActiveCustomerReadyState(isCorrectMatch ? 'ready' : 'mismatch');
+    }
   }
 
   private getSelectedFoodMessage(): string {
-    const selectedFoodNames = this.foodStation.getSelectedReadyFoodIds().map((foodId) => this.findFood(foodId).name);
+    const selectedReadyNames = this.foodStation.getSelectedReadyFoodNames();
+    const selectedCookingNames = this.foodStation.getSelectedCookingFoodNames();
 
-    if (selectedFoodNames.length === 0) {
-      return 'No ready food selected';
+    const parts: string[] = [];
+    if (selectedReadyNames.length > 0) {
+      parts.push(`Ready: ${selectedReadyNames.join(' + ')}`);
+    }
+    if (selectedCookingNames.length > 0) {
+      parts.push(`Cooking: ${selectedCookingNames.join(' + ')}`);
     }
 
-    return `Selected: ${selectedFoodNames.join(' + ')}`;
+    if (parts.length === 0) {
+      return 'No food selected';
+    }
+
+    return parts.join(' | ');
   }
 
   private renderUpgradePanel(): void {
