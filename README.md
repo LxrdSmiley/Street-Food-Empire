@@ -288,3 +288,4 @@ A fully client-side offline game cannot be perfectly protected against determine
 The source code is licensed under the repository license.
 
 Game title, branding, art, music, sound effects, written content, design documents, and other non-code assets are not automatically licensed for reuse unless explicitly stated.
+
