@@ -15,6 +15,7 @@ import { SatisfactionSystem } from '../systems/SatisfactionSystem';
 import { StreakSystem } from '../systems/StreakSystem';
 import { UpgradeSystem } from '../systems/UpgradeSystem';
 import { ProgressionSystem } from '../systems/ProgressionSystem';
+import { SessionGoalSystem } from '../systems/SessionGoalSystem';
 import { FoodStation } from '../entities/FoodStation';
 import { Stall } from '../entities/Stall';
 import { MarketBackdrop } from '../entities/MarketBackdrop';
@@ -23,6 +24,7 @@ import { DaySummaryPanel } from '../ui/DaySummaryPanel';
 import { HelpPanel } from '../ui/HelpPanel';
 import { OfflineRewardPanel } from '../ui/OfflineRewardPanel';
 import { UpgradePanel } from '../ui/UpgradePanel';
+import { SessionGoalsPanel } from '../ui/SessionGoalsPanel';
 import type {
   CustomerOrder,
   CustomerState,
@@ -45,6 +47,7 @@ export class MainScene extends Phaser.Scene {
   private streakSystem!: StreakSystem;
   private upgradeSystem!: UpgradeSystem;
   private progressionSystem!: ProgressionSystem;
+  private sessionGoalSystem!: SessionGoalSystem;
   private foodStation!: FoodStation;
   private stall!: Stall;
   private hud!: HUD;
@@ -52,6 +55,7 @@ export class MainScene extends Phaser.Scene {
   private daySummaryPanel?: DaySummaryPanel;
   private helpPanel?: HelpPanel;
   private offlineRewardPanel?: OfflineRewardPanel;
+  private sessionGoalsPanel?: SessionGoalsPanel;
   private pendingOfflineReward?: OfflineEarningsResult;
 
   constructor() {
@@ -78,6 +82,7 @@ export class MainScene extends Phaser.Scene {
     this.offlineEarningsSystem = new OfflineEarningsSystem();
     this.orderSystem = new OrderSystem(FOODS, () => this.progressionSystem.getStallLevel());
     this.rushHourSystem = new RushHourSystem();
+    this.sessionGoalSystem = new SessionGoalSystem();
 
     this.hud = new HUD(
       this,
@@ -92,6 +97,9 @@ export class MainScene extends Phaser.Scene {
       },
       () => {
         this.handleSoundToggle();
+      },
+      () => {
+        this.handleGoalsToggle();
       },
       () => {
         this.handleStartDayRequest();
@@ -179,6 +187,22 @@ export class MainScene extends Phaser.Scene {
     this.hud.updateStreak(this.streakSystem.getCurrentStreak(), this.streakSystem.getBestStreak());
     this.hud.updateFoodState('Read the order. Tap an empty slot to cook.');
     this.hud.setMessage('Day started. Serve 6 customers before patience runs out.');
+
+    // Generate session goals and show brief preview
+    const goals = this.sessionGoalSystem.generateGoals(this.progressionSystem.getStallLevel());
+    this.sessionGoalsPanel?.destroy();
+    this.sessionGoalsPanel = new SessionGoalsPanel(this, goals, () => {
+      this.sessionGoalsPanel?.destroy();
+      this.sessionGoalsPanel = undefined;
+    });
+    // Auto-close after 2 seconds so it doesn't block gameplay
+    this.time.delayedCall(2000, () => {
+      if (this.sessionGoalsPanel) {
+        this.sessionGoalsPanel.destroy();
+        this.sessionGoalsPanel = undefined;
+      }
+    });
+
     this.customerSystem.spawnNextCustomer();
   }
 
@@ -331,11 +355,22 @@ export class MainScene extends Phaser.Scene {
       this.streakSystem.getBestStreak(),
     );
 
+    const isTwoItem = order.items.length >= 2;
+    const totalCoinsEarned = baseCoins + tipsEarned;
+
+    // Track session goal events
+    const serveResult = this.sessionGoalSystem.onCorrectServe(isTwoItem);
+    const coinResult = this.sessionGoalSystem.onCoinsEarned(totalCoinsEarned);
+    const streakResult = this.sessionGoalSystem.onStreakChange(currentStreak);
+    if (serveResult || coinResult || streakResult) {
+      this.showFloatingText('Goal Complete!', GAME_WIDTH / 2, 370, '#7bd88f');
+    }
+
     this.saveGame();
     this.updatePostServiceHud();
     this.audioSystem.play('serve_success');
     this.audioSystem.play('coin_gain');
-    this.showFloatingText(`+${baseCoins + tipsEarned} coins`, GAME_WIDTH / 2, 470, '#7bd88f');
+    this.showFloatingText(`+${totalCoinsEarned} coins`, GAME_WIDTH / 2, 470, '#7bd88f');
 
     if (isFastServe) {
       this.showFloatingText(currentStreak > 1 ? `Fast Streak x${currentStreak}` : 'Fast Serve', GAME_WIDTH / 2, 420, '#ffd166');
@@ -363,6 +398,10 @@ export class MainScene extends Phaser.Scene {
     this.customerSystem.removeActiveCustomerAsFailed();
     const satisfaction = this.satisfactionSystem.recordWrongOrder();
     this.streakSystem.reset();
+
+    // Track wrong order for session goals
+    this.sessionGoalSystem.onWrongOrder();
+
     const summary = this.daySystem.recordMissed(satisfaction, this.streakSystem.getBestStreak());
     this.updateDayHud();
     this.hud.updateFoodState('Wrong order served.');
@@ -404,19 +443,63 @@ export class MainScene extends Phaser.Scene {
     this.foodStation.clearAll();
     this.customerSystem.clear();
     this.customerSystem.setActiveCustomerReadyState('waiting');
+
+    // Close goals panel if open
+    this.sessionGoalsPanel?.destroy();
+    this.sessionGoalsPanel = undefined;
+
+    // Evaluate end-of-day goals and claim rewards
+    this.sessionGoalSystem.onDayEnd(this.satisfactionSystem.getSatisfaction());
+    const rewards = this.sessionGoalSystem.claimRewards();
+
+    // Apply bonus rewards through proper systems
+    if (rewards.totalCoins > 0) {
+      this.economySystem.awardCoins(rewards.totalCoins);
+    }
+    if (rewards.totalXp > 0) {
+      const bonusProgress = this.progressionSystem.awardServiceProgress(rewards.totalXp);
+      if (bonusProgress.didLevelUp) {
+        this.celebrateLevelUp(bonusProgress.currentLevel);
+      }
+    }
+
+    // Calculate next target
+    const progression = this.progressionSystem.getState();
+    const nextTarget = this.sessionGoalSystem.getNextTarget(
+      progression.stallLevel,
+      this.economySystem.getCoins(),
+      progression.nextLevelXp,
+      progression.stallXp,
+      this.upgradeSystem.getUpgradeStates(this.economySystem.getCoins(), progression.stallLevel),
+    );
+
+    // Save immediately after reward claim to prevent duplication
     this.saveGame();
+
     this.hud.setStartDayVisible(true);
     this.hud.updateDayState(this.daySystem.getState());
+    this.hud.updateCoins(this.economySystem.getCoins());
+    this.renderProgression();
+    this.renderUpgradePanel();
     this.hud.updateFoodState('Day complete.');
     this.hud.setMessage('Review the day summary, then start another day.');
     this.daySummaryPanel?.destroy();
-    this.daySummaryPanel = new DaySummaryPanel(this, summary, this.progressionSystem.getStallLevel(), () => {
-      this.audioSystem.unlock();
-      this.audioSystem.play('button_tap');
-      this.daySummaryPanel?.destroy();
-      this.daySummaryPanel = undefined;
-      this.hud.setMessage('Tap Start Day for another short shift.');
-    });
+    this.daySummaryPanel = new DaySummaryPanel(
+      this,
+      summary,
+      this.progressionSystem.getStallLevel(),
+      rewards.goals,
+      rewards.totalCoins,
+      rewards.totalXp,
+      nextTarget,
+      () => {
+        this.audioSystem.unlock();
+        this.audioSystem.play('button_tap');
+        this.daySummaryPanel?.destroy();
+        this.daySummaryPanel = undefined;
+        this.hud.setMessage('Tap Start Day for another short shift.');
+      },
+    );
   }
 
   private handleBuyUpgrade(upgradeId: string): void {
@@ -486,6 +569,27 @@ export class MainScene extends Phaser.Scene {
     this.saveGame();
     this.hud.setMessage(nextEnabled ? 'Sound enabled.' : 'Sound muted.');
     this.audioSystem.play('button_tap');
+  }
+
+  private handleGoalsToggle(): void {
+    this.audioSystem.unlock();
+    this.audioSystem.play('button_tap');
+
+    if (this.sessionGoalsPanel) {
+      this.sessionGoalsPanel.destroy();
+      this.sessionGoalsPanel = undefined;
+      return;
+    }
+
+    if (!this.sessionGoalSystem.hasGoals()) {
+      this.hud.setMessage('Start a day to see session goals.');
+      return;
+    }
+
+    this.sessionGoalsPanel = new SessionGoalsPanel(this, this.sessionGoalSystem.getGoals(), () => {
+      this.sessionGoalsPanel?.destroy();
+      this.sessionGoalsPanel = undefined;
+    });
   }
 
   private handleCollectOfflineReward(): void {

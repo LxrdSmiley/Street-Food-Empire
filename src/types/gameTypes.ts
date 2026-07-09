@@ -226,3 +226,30 @@ export interface OfflineEarningsResult {
   wasCapped: boolean;
   reason?: string;
 }
+
+export type SessionGoalType =
+  | 'serve_correct'
+  | 'earn_coins'
+  | 'reach_streak'
+  | 'end_satisfaction'
+  | 'avoid_wrong_orders'
+  | 'serve_two_item_orders';
+
+export interface SessionGoal {
+  id: string;
+  type: SessionGoalType;
+  label: string;
+  target: number;
+  progress: number;
+  completed: boolean;
+  rewardCoins: number;
+  rewardXp: number;
+}
+
+export interface SessionGoalRewards {
+  totalCoins: number;
+  totalXp: number;
+  completedCount: number;
+  goals: readonly SessionGoal[];
+}
+

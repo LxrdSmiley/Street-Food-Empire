@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.4.0
+
+### Added
+- **Session Goals:** Each day generates 3 achievable goals (e.g., serve correct orders, earn coins, reach a streak, maintain satisfaction, avoid wrong orders, serve two-item orders). Progress updates in real-time during gameplay.
+- **Goals Panel:** New "Goals" button in the HUD opens a compact overlay showing today's goals with progress indicators, checkmarks, and reward amounts.
+- **Auto-Preview:** Goals panel briefly appears at day start to orient the player.
+- **Goal Rewards:** Completed goals award bonus coins and XP at day end. Rewards are claimed exactly once and saved immediately to prevent duplication.
+- **Next Target Display:** Day summary now shows a motivational "Next Target" based on the player's current progression state (next upgrade, next stall stage, or play challenge).
+- **Day Summary Goals Section:** End-of-day summary displays completed/incomplete goals with color-coded status and total bonus earned.
+
+### Changed
+- Day summary panel now accepts and renders session goal data alongside existing stats.
+- HUD bottom action row adjusted to fit a 5th button (Goals) without crowding existing controls.
+
 ## v0.3.0
 
 ### Added

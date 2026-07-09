@@ -25,6 +25,9 @@ export class HUD {
   private readonly soundButton: Phaser.GameObjects.Graphics;
   private readonly soundButtonText: Phaser.GameObjects.Text;
   private readonly soundHitZone: Phaser.GameObjects.Zone;
+  private readonly goalsButton: Phaser.GameObjects.Graphics;
+  private readonly goalsButtonText: Phaser.GameObjects.Text;
+  private readonly goalsHitZone: Phaser.GameObjects.Zone;
   private readonly startButton: Phaser.GameObjects.Graphics;
   private readonly startButtonText: Phaser.GameObjects.Text;
   private readonly startHitZone: Phaser.GameObjects.Zone;
@@ -32,6 +35,7 @@ export class HUD {
   private readonly onResetRequested: () => void;
   private readonly onHelpRequested: () => void;
   private readonly onSoundToggleRequested: () => void;
+  private readonly onGoalsRequested: () => void;
   private readonly onStartDayRequested: () => void;
 
   constructor(
@@ -40,6 +44,7 @@ export class HUD {
     onResetRequested: () => void,
     onHelpRequested: () => void,
     onSoundToggleRequested: () => void,
+    onGoalsRequested: () => void,
     onStartDayRequested: () => void,
     soundEnabled: boolean,
   ) {
@@ -47,6 +52,7 @@ export class HUD {
     this.onResetRequested = onResetRequested;
     this.onHelpRequested = onHelpRequested;
     this.onSoundToggleRequested = onSoundToggleRequested;
+    this.onGoalsRequested = onGoalsRequested;
     this.onStartDayRequested = onStartDayRequested;
 
     // Draw Rounded Panel Base using Graphics
@@ -189,21 +195,37 @@ export class HUD {
     });
 
     this.soundButton = scene.add.graphics();
-    this.drawRoundedButton(this.soundButton, 438, 214, 150, 52, 0x2d313e, COLORS.hudStroke);
+    this.drawRoundedButton(this.soundButton, 410, 214, 130, 52, 0x2d313e, COLORS.hudStroke);
     this.soundButtonText = scene.add
-      .text(438, 214, 'Sound: On', {
+      .text(410, 214, 'Sound: On', {
         align: 'center',
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
+        fontSize: '17px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
-    this.soundHitZone = scene.add.zone(438, 214, 174, 72).setInteractive({ useHandCursor: true });
+    this.soundHitZone = scene.add.zone(410, 214, 154, 72).setInteractive({ useHandCursor: true });
     this.soundHitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
       this.onSoundToggleRequested();
     });
     this.updateSoundState(soundEnabled);
+
+    this.goalsButton = scene.add.graphics();
+    this.drawRoundedButton(this.goalsButton, 556, 214, 120, 52, 0x2d313e, COLORS.hudStroke);
+    this.goalsButtonText = scene.add
+      .text(556, 214, 'Goals', {
+        align: 'center',
+        color: '#ffd166',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '19px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    this.goalsHitZone = scene.add.zone(556, 214, 144, 72).setInteractive({ useHandCursor: true });
+    this.goalsHitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.onGoalsRequested();
+    });
 
     // Guides & Status Texts
     this.hintText = scene.add
@@ -322,6 +344,6 @@ export class HUD {
 
   updateSoundState(soundEnabled: boolean): void {
     this.soundButtonText.setText(soundEnabled ? 'Sound: On' : 'Sound: Off');
-    this.drawRoundedButton(this.soundButton, 438, 214, 150, 52, soundEnabled ? 0x2d313e : 0x1e2230, COLORS.hudStroke);
+    this.drawRoundedButton(this.soundButton, 410, 214, 130, 52, soundEnabled ? 0x2d313e : 0x1e2230, COLORS.hudStroke);
   }
 }

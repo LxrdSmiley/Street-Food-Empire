@@ -1,4 +1,4 @@
-# Street Food Empire: Kingston Rush QA Checklist - v0.2.1
+# Street Food Empire: Kingston Rush QA Checklist - v0.4.0
 
 Use this checklist before sharing a demo build to verify all core systems, mobile layouts, and save migrations function as expected.
 
@@ -108,3 +108,25 @@ Check the canvas centering and font readability at these viewports:
 - [ ] Confirm the Day Summary panel shows the letter grade badge and the current stall stage name.
 - [ ] Verify that increasing MAX_STALL_LEVEL to 5 does not break loading/saving of older level 4 progress.
 
+## 14. Session Goals + Retention Loop (v0.4.0)
+- [ ] Tap Start Day and confirm 3 session goals briefly appear in a panel overlay.
+- [ ] Confirm the goals panel auto-closes after ~2 seconds without blocking gameplay.
+- [ ] Tap the Goals button in the HUD and confirm the goals panel opens with today's goals.
+- [ ] Tap Close or the scrim on the goals panel and confirm it closes.
+- [ ] Before starting a day, tap Goals and confirm the message says "Start a day to see session goals."
+- [ ] During a day, serve a correct order and confirm "serve_correct" goal progress updates.
+- [ ] During a day, serve a correct 2-item order and confirm "serve_two_item_orders" goal updates.
+- [ ] Earn coins during a day and confirm "earn_coins" goal progress increases.
+- [ ] Achieve a streak and confirm "reach_streak" goal progress updates.
+- [ ] Serve a wrong order and confirm "avoid_wrong_orders" progress decreases (but burnt cleanup does NOT count as wrong order).
+- [ ] Confirm that completing a goal shows a "Goal Complete!" floating text.
+- [ ] Complete the day and confirm the Day Summary shows a "Goals Completed: X/3" section.
+- [ ] Confirm completed goals show green checkmarks and reward amounts (+Xc +Xxp).
+- [ ] Confirm incomplete goals show gray with no checkmarks.
+- [ ] Confirm the total bonus line shows "Goal Bonus: +Xcoins +Xxp" if any goals were completed.
+- [ ] Confirm a "Next Target" line appears showing the next upgrade/stall stage/play challenge.
+- [ ] Start a second day and confirm 3 new goals are generated (may differ from previous day).
+- [ ] Complete all 3 goals in a day and confirm all 3 show checkmarks.
+- [ ] Reload the page after day completion and confirm bonus rewards are not awarded again.
+- [ ] Confirm offline rewards do NOT count toward session goal coin progress.
+- [ ] Confirm session goals do not persist across save/load (they are regenerated each day).
