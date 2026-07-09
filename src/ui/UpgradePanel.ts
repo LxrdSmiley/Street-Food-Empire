@@ -50,9 +50,14 @@ export class UpgradePanel extends Phaser.GameObjects.Container {
     // Row Background Card
     const rowBg = scene.add.rectangle(0, y, GAME_WIDTH - 72, 38, 0x1d1e26, 0.75).setStrokeStyle(1.5, 0x2e303d);
 
+    const recommendedId = this.getRecommendedUpgradeId(upgradeState, y);
+    const displayName = upgradeState.definition.id === recommendedId
+      ? `${upgradeState.definition.name} (Recommended)`
+      : upgradeState.definition.name;
+
     const label = scene.add
-      .text(-310, y, upgradeState.definition.name, {
-        color: upgradeState.isUnlocked ? '#fff7df' : '#64748b',
+      .text(-310, y, displayName, {
+        color: upgradeState.definition.id === recommendedId ? '#ffd166' : (upgradeState.isUnlocked ? '#fff7df' : '#64748b'),
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
         fontStyle: 'bold',
@@ -134,5 +139,34 @@ export class UpgradePanel extends Phaser.GameObjects.Container {
     }
 
     return upgradeState.canAfford ? 'Buy' : 'Need coins';
+  }
+
+  private getRecommendedUpgradeId(upgradeState: UpgradeState, y: number): string | null {
+    // Access all upgrade states stored in the scene's upgradeSystem to select the best one
+    const mainScene = this.scene as any;
+    if (!mainScene || !mainScene.upgradeSystem || !mainScene.economySystem || !mainScene.progressionSystem) {
+      return null;
+    }
+
+    const states: UpgradeState[] = mainScene.upgradeSystem.getUpgradeStates(
+      mainScene.economySystem.getCoins(),
+      mainScene.progressionSystem.getStallLevel()
+    );
+
+    // 1. Prioritize Hotter Grill (grill_speed) if it is still level 0
+    const grillSpeed = states.find((s) => s.definition.id === 'grill_speed');
+    if (grillSpeed && grillSpeed.isUnlocked && grillSpeed.level === 0) {
+      return 'grill_speed';
+    }
+
+    // 2. Recommend Better Portions (food_value) if unlocked and still level 0
+    const foodValue = states.find((s) => s.definition.id === 'food_value');
+    if (foodValue && foodValue.isUnlocked && foodValue.level === 0) {
+      return 'food_value';
+    }
+
+    // 3. Otherwise, recommend the first unlocked, non-maxed upgrade
+    const firstAvailable = states.find((s) => s.isUnlocked && !s.isMaxed);
+    return firstAvailable ? firstAvailable.definition.id : null;
   }
 }

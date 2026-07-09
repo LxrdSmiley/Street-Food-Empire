@@ -6,20 +6,25 @@ The player starts with a Jamaican food cart in Kingston Night Market, serves cus
 
 ## Project Status
 
-Playable core cooking loop with session goals, retention loop, rich visual identity, and 5 stall progression stages (`v0.4.0`).
+Playable core cooking loop with first-time tutorial onboarding, session goals, early balance pass, and 5 stall stages (`v0.5.0`).
 
 Implemented now:
+
+- v0.5.0 First-Time Tutorial: skippable callout guides introducing core mechanics
+- v0.5.0 Tutorial UI Overlay: primitive shape text panels, pointers, skip/next buttons
+- v0.5.0 Upgrade Recommendation: automatic recommended upgrades label
+- v0.5.0 Save Settings Integration: tutorialCompleted setting auto-repairing old saves
+- v0.4.0 Session Goals: 3 goals per day (serve correct, earn coins, streak, satisfaction, avoid wrong orders, two-item orders)
+- v0.4.0 Goals Panel with progress indicators and reward display
+- v0.4.0 Auto-preview goals at day start
+- v0.4.0 Goal bonus rewards (coins + XP) at day end
+- v0.4.0 Next Target motivational display in day summary
 
 - Phaser 3 + TypeScript + Vite scaffold
 - Portrait mobile-friendly canvas scaling
 - Boot, preload, title, and main gameplay scene flow
 - Start / Continue title scene showing player's current stall stage in real-time
 - In-game Help overlay explaining the core loop
-- v0.4.0 Session Goals: 3 goals per day (serve correct, earn coins, streak, satisfaction, avoid wrong orders, two-item orders)
-- v0.4.0 Goals Panel with progress indicators and reward display
-- v0.4.0 Auto-preview goals at day start
-- v0.4.0 Goal bonus rewards (coins + XP) at day end
-- v0.4.0 Next Target motivational display in day summary
 - v0.3.0 Detailed Kingston Night Market background (layered sky, skyline windows, tents, streetlights, twinkling string lights)
 - v0.3.0 5 Stall Visual stages (Tiny Cart, Umbrella Setup, Menu Board, Fairy Lights, Full permanent Kingston Booth)
 - v0.3.0 Custom-drawn food items in grill slots (Chicken drumstick, Festival dumplings, Roast Corn cobs, Pepper Shrimp)

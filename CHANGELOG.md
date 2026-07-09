@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.5.0
+
+### Added
+- **First-Time Tutorial System:** A lightweight, skippable tutorial system that introduces the main gameplay loop (Welcome → Start Day → Read Order → Cook → Wait for Ready → Select → Serve → Open Goals → Complete Day → Buy Upgrade).
+- **Tutorial UI Overlay:** Renders callouts, interactive "Skip Tutorial" and "Next" buttons, and simple pointing arrows using primitive graphics.
+- **Save Compatibility for Tutorial:** Adds `tutorialCompleted` to `GameSettings` and automatically repairs old saves to set it to `false`.
+- **Upgrade Recommendation:** Automatically highlights the most useful/affordable upgrade in the Upgrade Panel with a `(Recommended)` tag.
+
+### Changed
+- **Early Balance Tuning:** 
+  - Stall Level 1 → 2 XP requirement increased from `36` to `45` (exactly 3 clean serves).
+  - First upgrade cost for Hotter Grill decreased from `30` to `25` coins (reachable on Day 1).
+  - Patience for early `local_regular` customers increased from 12s to 14s.
+
 ## v0.4.0
 
 ### Added

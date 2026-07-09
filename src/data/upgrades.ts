@@ -5,7 +5,7 @@ export const UPGRADES: readonly UpgradeDefinition[] = [
     id: 'grill_speed',
     name: 'Hotter Grill',
     description: 'Reduces food prep time.',
-    baseCost: 30,
+    baseCost: 25,
     maxLevel: 5,
     effectType: 'prep_time_reduction_ms',
     effectValue: 180,

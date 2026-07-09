@@ -25,6 +25,8 @@ import { HelpPanel } from '../ui/HelpPanel';
 import { OfflineRewardPanel } from '../ui/OfflineRewardPanel';
 import { UpgradePanel } from '../ui/UpgradePanel';
 import { SessionGoalsPanel } from '../ui/SessionGoalsPanel';
+import { TutorialSystem } from '../systems/TutorialSystem';
+import { TutorialOverlay } from '../ui/TutorialOverlay';
 import type {
   CustomerOrder,
   CustomerState,
@@ -57,6 +59,8 @@ export class MainScene extends Phaser.Scene {
   private offlineRewardPanel?: OfflineRewardPanel;
   private sessionGoalsPanel?: SessionGoalsPanel;
   private pendingOfflineReward?: OfflineEarningsResult;
+  private tutorialSystem!: TutorialSystem;
+  private tutorialOverlay?: TutorialOverlay;
 
   constructor() {
     super(SCENE_KEYS.MAIN);
@@ -148,6 +152,9 @@ export class MainScene extends Phaser.Scene {
     this.hud.setMessage(this.getLoadedSaveMessage(loadedSave.status));
     this.hud.updateFoodState('Tap Start Day when ready.');
     this.showOfflineRewardIfAvailable(loadedSave);
+
+    this.tutorialSystem = new TutorialSystem(loadedSave.snapshot.settings.tutorialCompleted);
+    this.updateTutorialOverlay();
   }
 
   update(_time: number, delta: number): void {
@@ -191,17 +198,26 @@ export class MainScene extends Phaser.Scene {
     // Generate session goals and show brief preview
     const goals = this.sessionGoalSystem.generateGoals(this.progressionSystem.getStallLevel());
     this.sessionGoalsPanel?.destroy();
-    this.sessionGoalsPanel = new SessionGoalsPanel(this, goals, () => {
-      this.sessionGoalsPanel?.destroy();
-      this.sessionGoalsPanel = undefined;
-    });
-    // Auto-close after 2 seconds so it doesn't block gameplay
-    this.time.delayedCall(2000, () => {
-      if (this.sessionGoalsPanel) {
-        this.sessionGoalsPanel.destroy();
+    this.sessionGoalsPanel = undefined;
+
+    if (!this.tutorialSystem.isActive()) {
+      this.sessionGoalsPanel = new SessionGoalsPanel(this, goals, () => {
+        this.sessionGoalsPanel?.destroy();
         this.sessionGoalsPanel = undefined;
-      }
-    });
+      });
+      // Auto-close after 2 seconds so it doesn't block gameplay
+      this.time.delayedCall(2000, () => {
+        if (this.sessionGoalsPanel) {
+          this.sessionGoalsPanel.destroy();
+          this.sessionGoalsPanel = undefined;
+        }
+      });
+    }
+
+    if (this.tutorialSystem.isActive()) {
+      this.tutorialSystem.advance('start_day_clicked');
+      this.updateTutorialOverlay();
+    }
 
     this.customerSystem.spawnNextCustomer();
   }
@@ -231,6 +247,10 @@ export class MainScene extends Phaser.Scene {
         this.hud.setMessage('Cooking item selected. Tap Discard to clear slot.');
       } else {
         this.hud.setMessage(foodId ? 'Ready food selected. Tap the customer to serve.' : 'Select ready food to serve.');
+        if (this.tutorialSystem.isActive() && foodId) {
+          this.tutorialSystem.advance('food_selected');
+          this.updateTutorialOverlay();
+        }
       }
       return;
     }
@@ -271,6 +291,10 @@ export class MainScene extends Phaser.Scene {
         this.audioSystem.play('food_ready');
         this.hud.setMessage(`${readyFood.name} ready. Tap its slot, then tap the customer.`);
         this.hud.updateFoodState(`${readyFood.name} ready`);
+        if (this.tutorialSystem.isActive()) {
+          this.tutorialSystem.advance('food_ready');
+          this.updateTutorialOverlay();
+        }
       },
       (_burntSlotIndex, burntFood) => {
         this.audioSystem.play('button_tap');
@@ -291,6 +315,11 @@ export class MainScene extends Phaser.Scene {
     this.audioSystem.play('food_prep_start');
     this.hud.updateFoodState(`Cooking ${nextFood.name} (${(prepTimeMs / 1000).toFixed(1)}s)`);
     this.hud.setMessage(`Cooking ${nextFood.name}. Ready food can burn if ignored.`);
+
+    if (this.tutorialSystem.isActive()) {
+      this.tutorialSystem.advance('food_slot_tapped');
+      this.updateTutorialOverlay();
+    }
   }
 
   private handleFoodDiscard(foodIds: string[]): void {
@@ -372,6 +401,11 @@ export class MainScene extends Phaser.Scene {
     this.audioSystem.play('coin_gain');
     this.showFloatingText(`+${totalCoinsEarned} coins`, GAME_WIDTH / 2, 470, '#7bd88f');
 
+    if (this.tutorialSystem.isActive()) {
+      this.tutorialSystem.advance('customer_served');
+      this.updateTutorialOverlay();
+    }
+
     if (isFastServe) {
       this.showFloatingText(currentStreak > 1 ? `Fast Streak x${currentStreak}` : 'Fast Serve', GAME_WIDTH / 2, 420, '#ffd166');
     }
@@ -448,6 +482,13 @@ export class MainScene extends Phaser.Scene {
     this.sessionGoalsPanel?.destroy();
     this.sessionGoalsPanel = undefined;
 
+    // Hide tutorial overlay during day summary overlay
+    this.tutorialOverlay?.setVisible(false);
+
+    if (this.tutorialSystem.isActive()) {
+      this.tutorialSystem.advance('day_completed');
+    }
+
     // Evaluate end-of-day goals and claim rewards
     this.sessionGoalSystem.onDayEnd(this.satisfactionSystem.getSatisfaction());
     const rewards = this.sessionGoalSystem.claimRewards();
@@ -498,6 +539,11 @@ export class MainScene extends Phaser.Scene {
         this.daySummaryPanel?.destroy();
         this.daySummaryPanel = undefined;
         this.hud.setMessage('Tap Start Day for another short shift.');
+
+        if (this.tutorialSystem.isActive()) {
+          this.tutorialSystem.advance('next');
+          this.updateTutorialOverlay();
+        }
       },
     );
   }
@@ -590,6 +636,11 @@ export class MainScene extends Phaser.Scene {
       this.sessionGoalsPanel?.destroy();
       this.sessionGoalsPanel = undefined;
     });
+
+    if (this.tutorialSystem.isActive()) {
+      this.tutorialSystem.advance('goals_opened');
+      this.updateTutorialOverlay();
+    }
   }
 
   private handleCollectOfflineReward(): void {
@@ -748,6 +799,7 @@ export class MainScene extends Phaser.Scene {
       stallXp: this.progressionSystem.getStallXp(),
       settings: {
         soundEnabled: this.audioSystem.isEnabled(),
+        tutorialCompleted: this.tutorialSystem ? !this.tutorialSystem.isActive() : false,
       },
     });
   }
@@ -911,5 +963,56 @@ export class MainScene extends Phaser.Scene {
       'Full Kingston Booth'
     ];
     return stageNames[Phaser.Math.Clamp(level - 1, 0, 4)];
+  }
+
+  private updateTutorialOverlay(): void {
+    if (!this.tutorialSystem.isActive()) {
+      if (this.tutorialOverlay) {
+        this.tutorialOverlay.destroy();
+        this.tutorialOverlay = undefined;
+      }
+      return;
+    }
+
+    const step = this.tutorialSystem.getCurrentStep();
+    const msg = this.tutorialSystem.getCurrentMessage();
+
+    if (!this.tutorialOverlay) {
+      this.tutorialOverlay = new TutorialOverlay(
+        this,
+        step,
+        msg,
+        () => this.handleTutorialNext(),
+        () => this.handleTutorialSkip()
+      );
+    } else {
+      this.tutorialOverlay.showStep(step, msg);
+    }
+  }
+
+  private handleTutorialNext(): void {
+    this.audioSystem.unlock();
+    this.audioSystem.play('button_tap');
+
+    const step = this.tutorialSystem.getCurrentStep();
+    if (step === 'welcome' || step === 'read_order' || step === 'finish_day' || step === 'open_upgrades') {
+      this.tutorialSystem.advance('next');
+      this.updateTutorialOverlay();
+    }
+  }
+
+  private handleTutorialSkip(): void {
+    this.audioSystem.unlock();
+    this.audioSystem.play('button_tap');
+    this.tutorialSystem.skip();
+    this.finishTutorial();
+  }
+
+  private finishTutorial(): void {
+    this.tutorialOverlay?.destroy();
+    this.tutorialOverlay = undefined;
+    this.saveGame();
+    this.hud.setMessage('Tutorial completed. Ready for the night market!');
+    this.renderUpgradePanel(); // Ensure upgrade recommendation overlay re-renders
   }
 }

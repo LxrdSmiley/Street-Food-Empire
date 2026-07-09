@@ -1,4 +1,4 @@
-# Street Food Empire: Kingston Rush QA Checklist - v0.4.0
+# Street Food Empire: Kingston Rush QA Checklist - v0.5.0
 
 Use this checklist before sharing a demo build to verify all core systems, mobile layouts, and save migrations function as expected.
 
@@ -130,3 +130,22 @@ Check the canvas centering and font readability at these viewports:
 - [ ] Reload the page after day completion and confirm bonus rewards are not awarded again.
 - [ ] Confirm offline rewards do NOT count toward session goal coin progress.
 - [ ] Confirm session goals do not persist across save/load (they are regenerated each day).
+
+## 15. First-Time Tutorial Onboarding & Upgrades (v0.5.0)
+- [ ] Load a fresh save (no existing LocalStorage data) and confirm the `welcome` tutorial step displays a text overlay with Next and Skip Tutorial buttons.
+- [ ] Tap Next and verify step advances to `start_day` pointing to the Start Day button.
+- [ ] Verify that clicking the "Skip Tutorial" button immediately completes the tutorial, hides the overlay, and saves `tutorialCompleted: true`.
+- [ ] Load an existing v0.4.0 save and confirm it loads successfully with no tamper warnings, and automatically repairs settings to set `tutorialCompleted: false` (or doesn't crash).
+- [ ] In the tutorial, tap Start Day and verify the overlay advances to `read_order`.
+- [ ] Tap Next on `read_order` and verify it highlights the grill and changes step to `tap_food_slot`.
+- [ ] Tap an empty grill slot to start cooking Jerk Chicken and verify it advances to `wait_for_ready`.
+- [ ] Wait for Jerk Chicken to become ready (pulse steam lines) and verify the overlay changes to `select_ready_food`.
+- [ ] Tap the ready Jerk Chicken slot to select it and verify the overlay advances to `serve_customer` pointing to the customer bubble.
+- [ ] Tap the customer to serve the order and verify the overlay advances to `open_goals` pointing to the Goals button.
+- [ ] Tap the Goals button to toggle the Goals panel open and verify the overlay advances to `finish_day`.
+- [ ] Tap Next on `finish_day` (or verify it has no Next button and advances automatically when the shift ends).
+- [ ] Verify that after serving the final customer and closing the Day Summary, the overlay shows the final step `open_upgrades` pointing to the upgrades panel.
+- [ ] Tap Next on `open_upgrades` and verify the tutorial overlay is destroyed, `tutorialCompleted` is saved as `true`, and HUD says "Tutorial completed. Ready for the night market!".
+- [ ] Confirm that Reset Save resets `tutorialCompleted` to `false` in settings.
+- [ ] Confirm that when the Upgrade Panel renders, the first affordable/useful upgrade (`grill_speed` at level 0) has a yellow `(Recommended)` tag appended to its label.
+

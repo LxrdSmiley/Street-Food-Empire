@@ -19,7 +19,7 @@ export const STARTING_STALL_LEVEL = 1;
 export const MAX_STALL_LEVEL = 5;
 export const STARTING_STALL_XP = 0;
 export const STALL_LEVEL_XP_REQUIREMENTS: Record<number, number> = {
-  1: 36,
+  1: 45,
   2: 90,
   3: 160,
   4: 250,

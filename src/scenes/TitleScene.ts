@@ -181,6 +181,7 @@ export class TitleScene extends Phaser.Scene {
       ...this.currentSnapshot,
       settings: {
         soundEnabled: nextEnabled,
+        tutorialCompleted: this.currentSnapshot.settings.tutorialCompleted,
       },
     };
     this.saveSystem.save(this.currentSnapshot);

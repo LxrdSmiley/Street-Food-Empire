@@ -219,6 +219,7 @@ export class SaveSystem {
   private createDefaultSettings(): GameSettings {
     return {
       soundEnabled: true,
+      tutorialCompleted: false,
     };
   }
 
@@ -261,6 +262,10 @@ export class SaveSystem {
         typeof candidate.soundEnabled === 'boolean'
           ? candidate.soundEnabled
           : this.createDefaultSettings().soundEnabled,
+      tutorialCompleted:
+        typeof candidate.tutorialCompleted === 'boolean'
+          ? candidate.tutorialCompleted
+          : this.createDefaultSettings().tutorialCompleted,
     };
   }
 
@@ -282,7 +287,10 @@ export class SaveSystem {
     }
 
     const candidate = original as Partial<GameSettings>;
-    return repaired.soundEnabled === candidate.soundEnabled;
+    return (
+      repaired.soundEnabled === candidate.soundEnabled &&
+      repaired.tutorialCompleted === candidate.tutorialCompleted
+    );
   }
 
   private isSaveObject(value: unknown): value is SaveGameData {
@@ -315,6 +323,7 @@ export class SaveSystem {
       stallXp: payload.stallXp,
       settings: {
         soundEnabled: payload.settings.soundEnabled,
+        tutorialCompleted: payload.settings.tutorialCompleted,
       },
       lastSavedAt: payload.lastSavedAt,
       salt: CHECKSUM_SALT,

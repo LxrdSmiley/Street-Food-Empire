@@ -146,7 +146,34 @@ export type AudioEventName =
 
 export interface GameSettings {
   soundEnabled: boolean;
+  tutorialCompleted: boolean;
 }
+
+export type TutorialStep =
+  | 'welcome'
+  | 'start_day'
+  | 'read_order'
+  | 'tap_food_slot'
+  | 'wait_for_ready'
+  | 'select_ready_food'
+  | 'serve_customer'
+  | 'open_goals'
+  | 'finish_day'
+  | 'open_upgrades'
+  | 'completed';
+
+export type TutorialAction =
+  | 'next'
+  | 'start_day_clicked'
+  | 'customer_spawned'
+  | 'food_slot_tapped'
+  | 'food_ready'
+  | 'food_selected'
+  | 'customer_served'
+  | 'goals_opened'
+  | 'day_completed'
+  | 'upgrades_opened';
+
 
 export interface SaveGameData {
   schemaVersion: number;

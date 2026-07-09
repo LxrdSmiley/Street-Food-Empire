@@ -4,7 +4,7 @@ export const CUSTOMERS: readonly CustomerDefinition[] = [
   {
     id: 'local_regular',
     displayName: 'Local Regular',
-    patienceMs: 12000,
+    patienceMs: 14000,
     tipMultiplier: 1,
     orderDifficultyBias: 0,
     personalityLines: ['Same tasty thing as usual.', 'Quick plate for the walk home.'],
