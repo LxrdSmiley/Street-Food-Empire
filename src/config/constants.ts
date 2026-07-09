@@ -16,12 +16,13 @@ export const SAVE_KEY = 'street_food_empire_save_v1';
 export const SAVE_SCHEMA_VERSION = 3;
 export const SAVE_FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 export const STARTING_STALL_LEVEL = 1;
-export const MAX_STALL_LEVEL = 4;
+export const MAX_STALL_LEVEL = 5;
 export const STARTING_STALL_XP = 0;
 export const STALL_LEVEL_XP_REQUIREMENTS: Record<number, number> = {
   1: 36,
   2: 90,
   3: 160,
+  4: 250,
 };
 
 export const RUSH_HOUR_DEFAULTS = {

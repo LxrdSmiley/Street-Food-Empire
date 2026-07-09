@@ -4,6 +4,8 @@ import { UPGRADES } from '../data/upgrades';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 import { formatCoins } from '../utils/format';
+import { MarketBackdrop } from '../entities/MarketBackdrop';
+import { Stall } from '../entities/Stall';
 import type { GameSnapshot } from '../types/gameTypes';
 
 export class TitleScene extends Phaser.Scene {
@@ -12,6 +14,8 @@ export class TitleScene extends Phaser.Scene {
   private currentSnapshot!: GameSnapshot;
   private statusText?: Phaser.GameObjects.Text;
   private soundButtonText?: Phaser.GameObjects.Text;
+  private infoText?: Phaser.GameObjects.Text;
+  private stall!: Stall;
 
   constructor() {
     super(SCENE_KEYS.TITLE);
@@ -23,59 +27,75 @@ export class TitleScene extends Phaser.Scene {
     this.currentSnapshot = loadedSave.snapshot;
     this.audioSystem = new AudioSystem(loadedSave.snapshot.settings.soundEnabled);
 
-    this.createBackdrop();
+    // Reusable Backdrop
+    new MarketBackdrop(this);
+
+    // Dynamic Stall matching player's current level
+    this.stall = new Stall(this, GAME_WIDTH / 2, 1010, this.currentSnapshot.stallLevel);
+
+    // Title Title Panel Background to increase contrast
+    const titlePanel = this.add.graphics();
+    titlePanel.fillStyle(0x0e1017, 0.76);
+    titlePanel.fillRoundedRect(44, 110, GAME_WIDTH - 88, 510, 16);
+    titlePanel.strokeRoundedRect(44, 110, GAME_WIDTH - 88, 510, 16);
+    titlePanel.lineStyle(2, COLORS.hudStroke, 0.6);
 
     this.add
-      .text(GAME_WIDTH / 2, 194, 'Street Food Empire:\nKingston Rush', {
+      .text(GAME_WIDTH / 2, 185, 'Street Food Empire:\nKingston Rush', {
         align: 'center',
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '52px',
+        fontSize: '48px',
         fontStyle: 'bold',
         lineSpacing: 10,
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setStroke('#11131a', 5);
 
     this.add
       .text(
         GAME_WIDTH / 2,
-        326,
+        306,
         'Run a short night-market shift. Read orders, cook the right items, and serve before patience runs out.',
         {
           align: 'center',
           color: '#ffd166',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '25px',
+          fontSize: '23px',
           lineSpacing: 8,
           wordWrap: { width: GAME_WIDTH - 120 },
         },
       )
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setStroke('#11131a', 3);
 
     this.add
-      .text(GAME_WIDTH / 2, 432, 'Start Day -> Cook order -> Select ready food -> Serve customer', {
+      .text(GAME_WIDTH / 2, 404, 'Start Day -> Cook order -> Select ready food -> Serve customer', {
         align: 'center',
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '25px',
+        fontSize: '23px',
         fontStyle: 'bold',
         wordWrap: { width: GAME_WIDTH - 120 },
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setStroke('#11131a', 3);
 
-    this.add
+    this.infoText = this.add
       .text(
         GAME_WIDTH / 2,
-        522,
-        `Coins: ${formatCoins(loadedSave.snapshot.coins)} | Stall ${loadedSave.snapshot.stallLevel}`,
+        485,
+        `Coins: ${formatCoins(loadedSave.snapshot.coins)} | Stall Stage: ${this.currentSnapshot.stallLevel}`,
         {
           align: 'center',
-          color: '#fff7df',
+          color: '#ffd166',
           fontFamily: 'Arial, sans-serif',
           fontSize: '24px',
+          fontStyle: 'bold',
         },
       )
       .setOrigin(0.5);
+    this.infoText.setStroke('#11131a', 4);
 
     this.createButton(GAME_WIDTH / 2, 666, 354, 78, 'Start / Continue', COLORS.success, () => {
       this.audioSystem.unlock();
@@ -97,6 +117,8 @@ export class TitleScene extends Phaser.Scene {
       this.audioSystem.setEnabled(resetSave.settings.soundEnabled);
       this.soundButtonText?.setText(this.getSoundLabel());
       this.statusText?.setText('Save reset. Start when ready.');
+      this.infoText?.setText(`Coins: ${formatCoins(resetSave.coins)} | Stall Stage: ${resetSave.stallLevel}`);
+      this.stall.setLevel(resetSave.stallLevel); // visual cart immediately resets to Stage 1!
     });
 
     this.soundButtonText = this.createButton(GAME_WIDTH / 2, 852, 250, 58, this.getSoundLabel(), 0x3b3f4d, () => {
@@ -104,14 +126,15 @@ export class TitleScene extends Phaser.Scene {
     });
 
     this.statusText = this.add
-      .text(GAME_WIDTH / 2, 602, this.getSaveStatusMessage(loadedSave.status), {
+      .text(GAME_WIDTH / 2, 570, this.getSaveStatusMessage(loadedSave.status), {
         align: 'center',
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '21px',
+        fontSize: '20px',
         wordWrap: { width: GAME_WIDTH - 120 },
       })
       .setOrigin(0.5);
+    this.statusText.setStroke('#11131a', 3);
   }
 
   private createButton(
@@ -123,18 +146,22 @@ export class TitleScene extends Phaser.Scene {
     fillColor: number,
     onSelect: () => void,
   ): Phaser.GameObjects.Text {
-    const button = this.add.rectangle(x, y, width, height, fillColor, 1);
-    button.setStrokeStyle(3, COLORS.hudStroke, 0.9);
+    const graphics = this.add.graphics();
+    graphics.fillStyle(fillColor, 1);
+    graphics.lineStyle(2.5, COLORS.hudStroke, 0.9);
+    graphics.fillRoundedRect(x - width / 2, y - height / 2, width, height, 12);
+    graphics.strokeRoundedRect(x - width / 2, y - height / 2, width, height, 12);
 
     const buttonText = this.add
       .text(x, y, label, {
         align: 'center',
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '25px',
+        fontSize: '24px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
+    buttonText.setStroke('#11131a', 3);
 
     this.add
       .zone(x, y, width + 28, height + 24)
@@ -176,26 +203,5 @@ export class TitleScene extends Phaser.Scene {
     }
 
     return 'Placeholder MVP demo build.';
-  }
-
-  private createBackdrop(): void {
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.skyTop);
-    this.add.rectangle(GAME_WIDTH / 2, 820, GAME_WIDTH, 920, COLORS.skyBottom);
-    this.add.rectangle(GAME_WIDTH / 2, 520, GAME_WIDTH, 170, 0x2f2743, 0.6);
-    this.add.rectangle(GAME_WIDTH / 2, 1110, GAME_WIDTH, 360, COLORS.street);
-
-    for (let index = 0; index < 9; index += 1) {
-      const x = 38 + index * 82;
-      const y = 122 + (index % 2) * 26;
-      this.add.circle(x, y, 7, COLORS.warning, 0.9);
-      this.add.line(x, y, 0, 0, 52, 34, 0xfff0a8, 0.32).setOrigin(0, 0);
-    }
-
-    this.add.rectangle(GAME_WIDTH / 2, 1010, 440, 198, COLORS.stallWood, 1).setStrokeStyle(5, COLORS.stallTrim);
-    this.add.rectangle(GAME_WIDTH / 2, 910, 490, 48, COLORS.stallTrim, 1);
-    this.add.rectangle(GAME_WIDTH / 2, 1060, 230, 88, COLORS.grill, 1);
-    this.add.ellipse(GAME_WIDTH / 2 - 88, 1052, 62, 34, 0xfff7df, 1).setStrokeStyle(2, 0x11131e);
-    this.add.ellipse(GAME_WIDTH / 2 - 94, 1048, 30, 18, 0xb85f2e, 1);
-    this.add.ellipse(GAME_WIDTH / 2 - 70, 1058, 26, 16, 0xe0953f, 1);
   }
 }

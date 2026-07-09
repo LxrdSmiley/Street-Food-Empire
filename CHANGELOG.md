@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.3.0
+
+### Added
+- **Kingston Night Market Backdrop:** Designed a detailed background featuring a layered night sky, city building outlines, glowing windows, market tents, streetlights with cast light cones, road pavements, and double strings of twinkling fairy lights.
+- **5 Stall Visual Stages:** Implemented a visible upgrade system where the stall transforms dynamically based on the current level: Tiny Push Cart (Stage 1), Better Grill Setup (Stage 2), Menu Board & Sign (Stage 3), Fairy Lights & Counter (Stage 4), and Full Kingston Booth (Stage 5).
+- **Dynamic Food Slot Renderers:** Food items inside grill slots now draw custom Phaser shapes representing Jerk Chicken (drumsticks with bones), Festival (golden ovals), Roast Corn (yellow cob with husk and grill char lines), and Pepper Shrimp (curved orange shrimp) with steam or smoke particles.
+- **Distinct Customer Silhouettes:** Rendered custom overlays on customer bodies (e.g. backpacks, vests, hardhats, tropical floral shirt patterns, sunglasses, and camera straps) to distinguish customer types visually.
+- **Level-Up celebration:** Added a full-screen flash and scaling alert overlays to celebrate stall upgrades.
+
+### Changed
+- Increased maximum stall level to 5.
+- Polished HUD, UpgradePanel, and pop-up borders using rounded rectangle graphics.
+- Set the Title Screen to render the player's saved stall stage in real-time.
+
 ## v0.2.1
 
 ### Added

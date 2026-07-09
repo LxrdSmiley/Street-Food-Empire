@@ -96,3 +96,15 @@ Check the canvas centering and font readability at these viewports:
 - [ ] Verify the two-slot grill labels are clear on smaller viewports.
 - [ ] Verify the `DISCARD` button sits perfectly centered between the slots and is fully readable.
 - [ ] Verify the `DaySummaryPanel` continue button is fully tappable and centered.
+
+## 13. Visual Identity & Stall Progression (v0.3.0)
+- [ ] Confirm the new backdrop renders: layered night sky, twinkling stars, moon, skyline, tents, and streetlights with cones.
+- [ ] Confirm food items inside slots draw custom shapes (drumstick for Jerk Chicken, golden ovals for Festival, yellow corn cob with char marks for Roast Corn, orange curved shapes for Pepper Shrimp).
+- [ ] Confirm raw/cooking state has a pulsing/pale effect; ready state has white steam lines; burnt state has charcoal gray/black color and gray smoke lines.
+- [ ] Confirm customer types have visual accents (baseball cap for regular, backpack strap/headband for student, safety vest/hardhat for worker, tropical shirt/sunglasses/camera strap for tourist).
+- [ ] Confirm a screen flash and scaling alert texts ("STALL UPGRADED! Stage X") celebrate leveling up.
+- [ ] Verify the title scene renders the player's saved stall level cart in real-time, and it resets to Stage 1 when save is reset.
+- [ ] Confirm the Upgrade panel shows costs and max level checkmarks clearly.
+- [ ] Confirm the Day Summary panel shows the letter grade badge and the current stall stage name.
+- [ ] Verify that increasing MAX_STALL_LEVEL to 5 does not break loading/saving of older level 4 progress.
+

@@ -6,23 +6,23 @@ The player starts with a Jamaican food cart in Kingston Night Market, serves cus
 
 ## Project Status
 
-Playable core cooking loop with discard mechanics and UX feedback (`v0.2.1`).
+Playable core cooking loop with rich visual identity, backdrop details, and 5 stall progression stages (`v0.3.0`).
 
 Implemented now:
 
 - Phaser 3 + TypeScript + Vite scaffold
 - Portrait mobile-friendly canvas scaling
 - Boot, preload, title, and main gameplay scene flow
-- Start / Continue title scene with visible Reset Save
+- Start / Continue title scene showing player's current stall stage in real-time
 - In-game Help overlay explaining the core loop
+- v0.3.0 Detailed Kingston Night Market background (layered sky, skyline windows, tents, streetlights, twinkling string lights)
+- v0.3.0 5 Stall Visual stages (Tiny Cart, Umbrella Setup, Menu Board, Fairy Lights, Full permanent Kingston Booth)
+- v0.3.0 Custom-drawn food items in grill slots (Chicken drumstick, Festival dumplings, Roast Corn cobs, Pepper Shrimp)
+- v0.3.0 Distinct customer silhouetted types (backpack straps, neon safety vests, yellow hardhats, Hawaiian print shirts, sunglasses)
 - v0.2.1 Trash/Discard button for aborting wrong cooking items
 - v0.2.1 Ternary Customer Order Match status bubble indicators
 - v0.2.1 Responsive floating text feedback overlays
 - v0.2.0 core loop redesign featuring slot-based cooking (2 cooking slots)
-- Cooking states: `empty`, `cooking`, `ready`, `burnt`
-- Burnt food management (clearing slot, satisfaction penalty)
-- Day/Session system (6 customer target) and `DaySummaryPanel` showing served/missed, coins, tips, satisfaction %, and best streak
-- Day/Session system (6 customer target) and `DaySummaryPanel` showing served/missed, coins, tips, satisfaction %, and best streak
 - Order logic requesting 1-2 items from unlocked foods
 - Satisfaction system clamped between `[0, 100]` with outcomes for serves/misses/burnt
 - Streak system tracking consecutive correct serves and rewarding a tip multiplier

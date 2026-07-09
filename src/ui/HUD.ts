@@ -12,20 +12,20 @@ export class HUD {
   private readonly foodStateText: Phaser.GameObjects.Text;
   private readonly messageText: Phaser.GameObjects.Text;
   private readonly hintText: Phaser.GameObjects.Text;
-  private readonly rushButton: Phaser.GameObjects.Rectangle;
+  private readonly rushButton: Phaser.GameObjects.Graphics;
   private readonly rushButtonText: Phaser.GameObjects.Text;
   private readonly rushStateText: Phaser.GameObjects.Text;
   private readonly rushHitZone: Phaser.GameObjects.Zone;
-  private readonly resetButton: Phaser.GameObjects.Rectangle;
+  private readonly resetButton: Phaser.GameObjects.Graphics;
   private readonly resetButtonText: Phaser.GameObjects.Text;
   private readonly resetHitZone: Phaser.GameObjects.Zone;
-  private readonly helpButton: Phaser.GameObjects.Rectangle;
+  private readonly helpButton: Phaser.GameObjects.Graphics;
   private readonly helpButtonText: Phaser.GameObjects.Text;
   private readonly helpHitZone: Phaser.GameObjects.Zone;
-  private readonly soundButton: Phaser.GameObjects.Rectangle;
+  private readonly soundButton: Phaser.GameObjects.Graphics;
   private readonly soundButtonText: Phaser.GameObjects.Text;
   private readonly soundHitZone: Phaser.GameObjects.Zone;
-  private readonly startButton: Phaser.GameObjects.Rectangle;
+  private readonly startButton: Phaser.GameObjects.Graphics;
   private readonly startButtonText: Phaser.GameObjects.Text;
   private readonly startHitZone: Phaser.GameObjects.Zone;
   private readonly onRushRequested: () => void;
@@ -49,20 +49,28 @@ export class HUD {
     this.onSoundToggleRequested = onSoundToggleRequested;
     this.onStartDayRequested = onStartDayRequested;
 
-    const panel = scene.add.rectangle(GAME_WIDTH / 2, 66, GAME_WIDTH - 40, 120, COLORS.hudPanel, 0.94);
-    panel.setStrokeStyle(3, COLORS.hudStroke);
+    // Draw Rounded Panel Base using Graphics
+    const panel = scene.add.graphics();
+    panel.fillStyle(COLORS.hudPanel, 0.94);
+    panel.lineStyle(3.5, COLORS.hudStroke, 1);
+    panel.fillRoundedRect(18, 6, GAME_WIDTH - 36, 122, 14);
+    panel.strokeRoundedRect(18, 6, GAME_WIDTH - 36, 122, 14);
 
+    // Decorative Icon Overlays
+    const coinIcon = scene.add.circle(44, 30, 11, 0xffd166, 1).setStrokeStyle(1.5, 0xb07d50);
+    const coinLetter = scene.add.text(44, 30, 'c', { color: '#6d3f28', fontSize: '12px', fontStyle: 'bold' }).setOrigin(0.5);
     this.coinText = scene.add
-      .text(48, 30, 'Coins: 0', {
+      .text(64, 30, 'Coins: 0', {
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '28px',
+        fontSize: '25px',
         fontStyle: 'bold',
       })
       .setOrigin(0, 0.5);
 
+    const starIcon = scene.add.text(44, 70, '⭐', { fontSize: '15px' }).setOrigin(0.5);
     this.progressionText = scene.add
-      .text(48, 70, 'Stall 1 | 0/40 XP', {
+      .text(64, 70, 'Stall 1 | 0/40 XP', {
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
         fontSize: '18px',
@@ -70,15 +78,17 @@ export class HUD {
       })
       .setOrigin(0, 0.5);
 
+    const dayIcon = scene.add.text(44, 100, '📋', { fontSize: '14px' }).setOrigin(0.5);
     this.dayText = scene.add
-      .text(48, 100, 'Customers 0/6', {
+      .text(64, 100, 'Customers 0/6', {
         color: '#ffd166',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
+        fontSize: '17px',
         fontStyle: 'bold',
       })
       .setOrigin(0, 0.5);
 
+    // Center Column
     this.satisfactionText = scene.add
       .text(370, 30, 'Satisfaction 100%', {
         align: 'center',
@@ -88,6 +98,7 @@ export class HUD {
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
+    this.satisfactionText.setStroke('#11131e', 3);
 
     this.streakText = scene.add
       .text(370, 62, 'Streak 0', {
@@ -98,6 +109,7 @@ export class HUD {
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
+    this.streakText.setStroke('#11131e', 3);
 
     this.rushStateText = scene.add
       .text(370, 94, 'Rush inactive', {
@@ -107,9 +119,11 @@ export class HUD {
         fontSize: '17px',
       })
       .setOrigin(0.5);
+    this.rushStateText.setStroke('#11131e', 3);
 
-    this.rushButton = scene.add.rectangle(584, 36, 178, 52, COLORS.danger, 1);
-    this.rushButton.setStrokeStyle(2, 0xffffff, 0.6);
+    // Right Column - Buttons
+    this.rushButton = scene.add.graphics();
+    this.drawRoundedButton(this.rushButton, 584, 36, 178, 52, COLORS.danger, 0xffffff);
     this.rushButtonText = scene.add
       .text(584, 36, 'Rush Hour', {
         align: 'center',
@@ -119,13 +133,14 @@ export class HUD {
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
+    this.rushButtonText.setStroke('#11131e', 3);
     this.rushHitZone = scene.add.zone(584, 36, 206, 72).setInteractive({ useHandCursor: true });
     this.rushHitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
       this.onRushRequested();
     });
 
-    this.startButton = scene.add.rectangle(584, 96, 178, 52, COLORS.success, 1);
-    this.startButton.setStrokeStyle(2, 0xffffff, 0.6);
+    this.startButton = scene.add.graphics();
+    this.drawRoundedButton(this.startButton, 584, 96, 178, 52, COLORS.success, 0xffffff);
     this.startButtonText = scene.add
       .text(584, 96, 'Start Day', {
         align: 'center',
@@ -140,8 +155,9 @@ export class HUD {
       this.onStartDayRequested();
     });
 
-    this.resetButton = scene.add.rectangle(102, 214, 164, 52, 0x3b3f4d, 1);
-    this.resetButton.setStrokeStyle(2, COLORS.hudStroke, 0.85);
+    // Bottom Action Row (Reset, Help, Sound)
+    this.resetButton = scene.add.graphics();
+    this.drawRoundedButton(this.resetButton, 102, 214, 164, 52, 0x2d313e, COLORS.hudStroke);
     this.resetButtonText = scene.add
       .text(102, 214, 'Reset Save', {
         align: 'center',
@@ -156,8 +172,8 @@ export class HUD {
       this.onResetRequested();
     });
 
-    this.helpButton = scene.add.rectangle(270, 214, 124, 52, 0x3b3f4d, 1);
-    this.helpButton.setStrokeStyle(2, COLORS.hudStroke, 0.85);
+    this.helpButton = scene.add.graphics();
+    this.drawRoundedButton(this.helpButton, 270, 214, 124, 52, 0x2d313e, COLORS.hudStroke);
     this.helpButtonText = scene.add
       .text(270, 214, 'Help', {
         align: 'center',
@@ -172,8 +188,8 @@ export class HUD {
       this.onHelpRequested();
     });
 
-    this.soundButton = scene.add.rectangle(438, 214, 150, 52, 0x3b3f4d, 1);
-    this.soundButton.setStrokeStyle(2, COLORS.hudStroke, 0.85);
+    this.soundButton = scene.add.graphics();
+    this.drawRoundedButton(this.soundButton, 438, 214, 150, 52, 0x2d313e, COLORS.hudStroke);
     this.soundButtonText = scene.add
       .text(438, 214, 'Sound: On', {
         align: 'center',
@@ -189,12 +205,13 @@ export class HUD {
     });
     this.updateSoundState(soundEnabled);
 
+    // Guides & Status Texts
     this.hintText = scene.add
-      .text(GAME_WIDTH / 2, 262, 'Start Day -> read order -> cook slots -> tap ready food -> serve customer', {
+      .text(GAME_WIDTH / 2, 266, 'Start Day -> read order -> cook slots -> tap ready food -> serve customer', {
         align: 'center',
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '19px',
+        fontSize: '18px',
         fontStyle: 'bold',
         wordWrap: { width: GAME_WIDTH - 80 },
       })
@@ -211,16 +228,34 @@ export class HUD {
         wordWrap: { width: GAME_WIDTH - 96 },
       })
       .setOrigin(0.5);
+    this.foodStateText.setStroke('#11131e', 4);
 
     this.messageText = scene.add
       .text(GAME_WIDTH / 2, 1254, '', {
         align: 'center',
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '23px',
+        fontSize: '21px',
         wordWrap: { width: GAME_WIDTH - 96 },
       })
       .setOrigin(0.5);
+    this.messageText.setStroke('#11131e', 3);
+  }
+
+  private drawRoundedButton(
+    graphics: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    fillColor: number,
+    strokeColor: number,
+  ): void {
+    graphics.clear();
+    graphics.fillStyle(fillColor, 1);
+    graphics.lineStyle(2.5, strokeColor, 0.85);
+    graphics.fillRoundedRect(x - w / 2, y - h / 2, w, h, 10);
+    graphics.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 10);
   }
 
   updateCoins(coins: number): void {
@@ -236,12 +271,15 @@ export class HUD {
   }
 
   updateProgression(stallLevel: number, stallXp: number, nextLevelXp: number | null): void {
+    const stageNames = ['Tiny Cart', 'Better Setup', 'Menu Sign', 'Fairy Lights', 'Kingston Booth'];
+    const stageName = stageNames[Phaser.Math.Clamp(stallLevel - 1, 0, 4)];
+    
     if (nextLevelXp === null) {
-      this.progressionText.setText(`Stall ${stallLevel} | Max level`);
+      this.progressionText.setText(`Stall ${stallLevel} (${stageName}) | Max Level`);
       return;
     }
 
-    this.progressionText.setText(`Stall ${stallLevel} | ${stallXp}/${nextLevelXp} XP`);
+    this.progressionText.setText(`Stall ${stallLevel} (${stageName}) | ${stallXp}/${nextLevelXp} XP`);
   }
 
   updateDayState(state: DayState): void {
@@ -272,18 +310,18 @@ export class HUD {
   updateRushState(state: RushHourState): void {
     if (state.isActive) {
       this.rushStateText.setText(`Rush ${state.remainingSeconds}s | ${state.rewardMultiplier}x`);
-      this.rushButton.setFillStyle(0x5d6672, 1);
+      this.drawRoundedButton(this.rushButton, 584, 36, 178, 52, 0x475569, 0xffffff);
       this.rushButtonText.setText('Active');
       return;
     }
 
     this.rushStateText.setText('Rush inactive');
-    this.rushButton.setFillStyle(COLORS.danger, 1);
+    this.drawRoundedButton(this.rushButton, 584, 36, 178, 52, COLORS.danger, 0xffffff);
     this.rushButtonText.setText('Rush Hour');
   }
 
   updateSoundState(soundEnabled: boolean): void {
     this.soundButtonText.setText(soundEnabled ? 'Sound: On' : 'Sound: Off');
-    this.soundButton.setFillStyle(soundEnabled ? 0x3b3f4d : 0x272b35, 1);
+    this.drawRoundedButton(this.soundButton, 438, 214, 150, 52, soundEnabled ? 0x2d313e : 0x1e2230, COLORS.hudStroke);
   }
 }

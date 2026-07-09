@@ -17,6 +17,7 @@ import { UpgradeSystem } from '../systems/UpgradeSystem';
 import { ProgressionSystem } from '../systems/ProgressionSystem';
 import { FoodStation } from '../entities/FoodStation';
 import { Stall } from '../entities/Stall';
+import { MarketBackdrop } from '../entities/MarketBackdrop';
 import { HUD } from '../ui/HUD';
 import { DaySummaryPanel } from '../ui/DaySummaryPanel';
 import { HelpPanel } from '../ui/HelpPanel';
@@ -45,6 +46,7 @@ export class MainScene extends Phaser.Scene {
   private upgradeSystem!: UpgradeSystem;
   private progressionSystem!: ProgressionSystem;
   private foodStation!: FoodStation;
+  private stall!: Stall;
   private hud!: HUD;
   private upgradePanel!: UpgradePanel;
   private daySummaryPanel?: DaySummaryPanel;
@@ -57,10 +59,6 @@ export class MainScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.createMarketBackdrop();
-
-    new Stall(this, GAME_WIDTH / 2, 830);
-
     this.saveSystem = new SaveSystem(UPGRADES);
     const loadedSave = this.saveSystem.load();
 
@@ -71,6 +69,9 @@ export class MainScene extends Phaser.Scene {
       loadedSave.snapshot.stallLevel,
       loadedSave.snapshot.stallXp,
     );
+
+    new MarketBackdrop(this);
+    this.stall = new Stall(this, GAME_WIDTH / 2, 830, loadedSave.snapshot.stallLevel);
     this.daySystem = new DaySystem();
     this.satisfactionSystem = new SatisfactionSystem();
     this.streakSystem = new StreakSystem();
@@ -341,8 +342,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     if (progress.didLevelUp) {
-      this.audioSystem.play('level_up');
-      this.showFloatingText(`Level ${progress.currentLevel}`, GAME_WIDTH / 2, 360, '#ffd166');
+      this.celebrateLevelUp(progress.currentLevel);
     }
 
     if (summary) {
@@ -410,7 +410,7 @@ export class MainScene extends Phaser.Scene {
     this.hud.updateFoodState('Day complete.');
     this.hud.setMessage('Review the day summary, then start another day.');
     this.daySummaryPanel?.destroy();
-    this.daySummaryPanel = new DaySummaryPanel(this, summary, () => {
+    this.daySummaryPanel = new DaySummaryPanel(this, summary, this.progressionSystem.getStallLevel(), () => {
       this.audioSystem.unlock();
       this.audioSystem.play('button_tap');
       this.daySummaryPanel?.destroy();
@@ -607,6 +607,9 @@ export class MainScene extends Phaser.Scene {
   private renderProgression(): void {
     const progression = this.progressionSystem.getState();
     this.hud.updateProgression(progression.stallLevel, progression.stallXp, progression.nextLevelXp);
+    if (this.stall) {
+      this.stall.setLevel(progression.stallLevel);
+    }
   }
 
   private showOfflineRewardIfAvailable(loadedSave: LoadedSave): void {
@@ -742,36 +745,67 @@ export class MainScene extends Phaser.Scene {
     return `Correct order. +${baseCoins} coins.`;
   }
 
-  private createMarketBackdrop(): void {
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, COLORS.skyTop);
-    this.add.rectangle(GAME_WIDTH / 2, 360, GAME_WIDTH, 260, 0x1a2440, 0.55);
-    this.add.rectangle(GAME_WIDTH / 2, 830, GAME_WIDTH, 900, COLORS.skyBottom);
-    this.add.rectangle(GAME_WIDTH / 2, 1085, GAME_WIDTH, 390, COLORS.street);
+  private celebrateLevelUp(level: number): void {
+    this.audioSystem.play('level_up');
+    
+    const flash = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xfff7df, 0.4);
+    flash.setDepth(3000);
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 350,
+      ease: 'Sine.easeOut',
+      onComplete: () => flash.destroy()
+    });
 
-    this.add
-      .text(GAME_WIDTH / 2, 150, 'Kingston Night Market', {
-        color: '#fff7df',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '40px',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
+    const titleText = this.add.text(GAME_WIDTH / 2, 420, 'STALL UPGRADED!', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '44px',
+      fontStyle: 'bold',
+      color: '#ffd166',
+      stroke: '#11131e',
+      strokeThickness: 8
+    }).setOrigin(0.5).setScale(0.5).setDepth(2500);
 
-    this.add
-      .text(GAME_WIDTH / 2, 194, 'Street Food Empire', {
-        color: '#ffd166',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '24px',
-      })
-      .setOrigin(0.5);
+    const descText = this.add.text(GAME_WIDTH / 2, 474, `Stage ${level}: ${this.getStallStageName(level)}`, {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '28px',
+      fontStyle: 'bold',
+      color: '#7bd88f',
+      stroke: '#11131e',
+      strokeThickness: 6
+    }).setOrigin(0.5).setScale(0.5).setDepth(2500);
 
-    for (let index = 0; index < 9; index += 1) {
-      const x = 36 + index * 84;
-      const y = 285 + (index % 2) * 28;
-      this.add.circle(x, y, 8, COLORS.warning, 0.9);
-      this.add.line(x, y, 0, 0, 48, 40, 0xfff0a8, 0.32).setOrigin(0, 0);
-    }
+    this.tweens.add({
+      targets: [titleText, descText],
+      scale: 1.1,
+      duration: 300,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: [titleText, descText],
+          y: (target: unknown) => (target === titleText ? 360 : 414),
+          alpha: 0,
+          delay: 1100,
+          duration: 500,
+          ease: 'Sine.easeIn',
+          onComplete: () => {
+            titleText.destroy();
+            descText.destroy();
+          }
+        });
+      }
+    });
+  }
 
-    this.add.rectangle(GAME_WIDTH / 2, 690, GAME_WIDTH, 34, 0x3d2f36, 0.7);
+  private getStallStageName(level: number): string {
+    const stageNames = [
+      'Tiny Push Cart',
+      'Better Grill Setup',
+      'Menu Board & Sign',
+      'Fairy Lights & Counter',
+      'Full Kingston Booth'
+    ];
+    return stageNames[Phaser.Math.Clamp(level - 1, 0, 4)];
   }
 }
