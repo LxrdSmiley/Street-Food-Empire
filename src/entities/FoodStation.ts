@@ -186,6 +186,7 @@ export class FoodStation extends Phaser.GameObjects.Container {
       slot.state = 'ready';
       slot.progressBar.width = PROGRESS_WIDTH;
       this.renderSlot(slotIndex);
+      this.pulseSlot(slotIndex, 1.08);
       this.updateTrashButtonVisuals();
       onReady(slotIndex, food);
       slot.burnTimer = this.scene.time.delayedCall(readyWindowMs, () => {
@@ -215,6 +216,7 @@ export class FoodStation extends Phaser.GameObjects.Container {
 
     slot.selected = !slot.selected;
     this.renderSlot(slotIndex);
+    this.pulseSlot(slotIndex, slot.selected ? 1.09 : 1.03);
     this.updateTrashButtonVisuals();
     return slot.foodId;
   }
@@ -371,6 +373,22 @@ export class FoodStation extends Phaser.GameObjects.Container {
       this.add(badge);
       slot.selectedBadge = badge;
     }
+  }
+
+  private pulseSlot(slotIndex: number, scale: number): void {
+    const slot = this.slots[slotIndex];
+
+    if (!slot) {
+      return;
+    }
+
+    this.scene.tweens.add({
+      targets: [slot.base, slot.label, slot.foodText],
+      scale,
+      duration: 115,
+      yoyo: true,
+      ease: 'Back.easeOut',
+    });
   }
 
   private drawFoodVisuals(slot: FoodSlotView, slotX: number, foodId: string, state: FoodSlotState): void {

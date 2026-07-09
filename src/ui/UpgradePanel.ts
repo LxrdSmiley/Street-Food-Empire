@@ -1,15 +1,22 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_WIDTH } from '../config/constants';
+import { FeedbackEffects } from './FeedbackEffects';
 import { formatCoins } from '../utils/format';
 import type { UpgradeState } from '../types/gameTypes';
 
 export class UpgradePanel extends Phaser.GameObjects.Container {
   private readonly rows: Phaser.GameObjects.GameObject[] = [];
+  private readonly rowBackgrounds = new Map<string, Phaser.GameObjects.Rectangle>();
   private readonly onBuyUpgrade: (upgradeId: string) => void;
+  private latestUpgradeStates: readonly UpgradeState[] = [];
 
   constructor(scene: Phaser.Scene, onBuyUpgrade: (upgradeId: string) => void) {
     super(scene, GAME_WIDTH / 2, 1112);
     this.onBuyUpgrade = onBuyUpgrade;
+    scene.input.on(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
+    this.once(Phaser.GameObjects.Events.DESTROY, () => {
+      scene.input.off(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
+    });
 
     // Draw Panel Base
     const panel = scene.add.graphics();
@@ -33,8 +40,10 @@ export class UpgradePanel extends Phaser.GameObjects.Container {
   }
 
   render(upgradeStates: readonly UpgradeState[]): void {
+    this.latestUpgradeStates = upgradeStates;
     this.rows.forEach((rowObject) => rowObject.destroy());
     this.rows.length = 0;
+    this.rowBackgrounds.clear();
 
     upgradeStates.forEach((upgradeState, index) => {
       const y = -50 + index * 44;
@@ -44,11 +53,36 @@ export class UpgradePanel extends Phaser.GameObjects.Container {
     });
   }
 
+  flashUpgrade(upgradeId: string): void {
+    const rowBg = this.rowBackgrounds.get(upgradeId);
+
+    if (!rowBg) {
+      FeedbackEffects.pulse(this.scene, this, 1.02);
+      return;
+    }
+
+    rowBg.setFillStyle(0x284c34, 0.92);
+    FeedbackEffects.pulse(this.scene, rowBg, 1.02);
+    this.scene.tweens.add({
+      targets: rowBg,
+      alpha: 0.55,
+      duration: 120,
+      yoyo: true,
+      repeat: 2,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        rowBg.setAlpha(1);
+        rowBg.setFillStyle(0x1d1e26, 0.75);
+      },
+    });
+  }
+
   private createRow(upgradeState: UpgradeState, y: number): Phaser.GameObjects.GameObject[] {
     const scene = this.scene;
 
     // Row Background Card
     const rowBg = scene.add.rectangle(0, y, GAME_WIDTH - 72, 38, 0x1d1e26, 0.75).setStrokeStyle(1.5, 0x2e303d);
+    this.rowBackgrounds.set(upgradeState.definition.id, rowBg);
 
     const recommendedId = this.getRecommendedUpgradeId(upgradeState, y);
     const displayName = upgradeState.definition.id === recommendedId
@@ -97,12 +131,7 @@ export class UpgradePanel extends Phaser.GameObjects.Container {
     const button = scene.add.rectangle(235, y, 154, 30, canBuy ? COLORS.success : 0x2a2c3a, 1);
     button.setStrokeStyle(1.5, canBuy ? 0xffffff : 0x475569);
     
-    const hitZone = scene.add.zone(235, y, 172, 46).setInteractive({ useHandCursor: canBuy });
-    hitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
-      if (canBuy) {
-        this.onBuyUpgrade(upgradeState.definition.id);
-      }
-    });
+    const hitZone = scene.add.zone(235, y, 172, 46);
 
     const buttonText = scene.add
       .text(235, y, this.getButtonText(upgradeState), {
@@ -139,6 +168,30 @@ export class UpgradePanel extends Phaser.GameObjects.Container {
     }
 
     return upgradeState.canAfford ? 'Buy' : 'Need coins';
+  }
+
+  private handlePointerDown(pointer: Phaser.Input.Pointer): void {
+    const localX = pointer.x - this.x;
+    const localY = pointer.y - this.y;
+
+    this.latestUpgradeStates.forEach((upgradeState, index) => {
+      const canBuy = upgradeState.canAfford && !upgradeState.isMaxed && upgradeState.isUnlocked;
+
+      if (!canBuy) {
+        return;
+      }
+
+      const rowY = -50 + index * 44;
+      const isInsideBuyButton =
+        localX >= 149 &&
+        localX <= 321 &&
+        localY >= rowY - 23 &&
+        localY <= rowY + 23;
+
+      if (isInsideBuyButton) {
+        this.onBuyUpgrade(upgradeState.definition.id);
+      }
+    });
   }
 
   private getRecommendedUpgradeId(upgradeState: UpgradeState, y: number): string | null {

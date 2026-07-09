@@ -6,10 +6,13 @@ The player starts with a Jamaican food cart in Kingston Night Market, serves cus
 
 ## Project Status
 
-Playable core cooking loop with first-time tutorial onboarding, session goals, early balance pass, and 5 stall stages (`v0.5.0`).
+Playable core cooking loop with first-time tutorial onboarding, session goals, early balance pass, 5 stall stages, and lightweight game-feel feedback polish (`v0.6.0`).
 
 Implemented now:
 
+- v0.6.0 Juice/Fun Pass: improved serve, coin, XP, streak, goal, upgrade, day summary, and level-up feedback using lightweight Phaser primitives/tweens
+- v0.6.0 Reward Feedback Clarity: distinct floating text for base coins, tips, XP, goal bonuses, and upgrade effects
+- v0.6.0 Save-Compatible Polish: no new persistent gameplay state, content, dependencies, assets, backend, ads, or IAP
 - v0.5.0 First-Time Tutorial: skippable callout guides introducing core mechanics
 - v0.5.0 Tutorial UI Overlay: primitive shape text panels, pointers, skip/next buttons
 - v0.5.0 Upgrade Recommendation: automatic recommended upgrades label
@@ -74,6 +77,10 @@ Not implemented yet:
 
 - Game Design Document: `docs/STREET_FOOD_EMPIRE_GDD.md`
 - Manual QA checklist: `docs/QA_CHECKLIST.md`
+- v0.6.0 release notes: `docs/RELEASE_NOTES_v0.6.0.md`
+- v0.5.0 release notes: `docs/RELEASE_NOTES_v0.5.0.md`
+- v0.4.0 release notes: `docs/RELEASE_NOTES_v0.4.0.md`
+- v0.3.0 release notes: `docs/RELEASE_NOTES_v0.3.0.md`
 - v0.2.0 release notes: `docs/RELEASE_NOTES_v0.2.0.md`
 - v0.1.2 release notes: `docs/RELEASE_NOTES_v0.1.2.md`
 - v0.1.1 release notes: `docs/RELEASE_NOTES_v0.1.1.md`

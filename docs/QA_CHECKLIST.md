@@ -1,4 +1,4 @@
-# Street Food Empire: Kingston Rush QA Checklist - v0.5.0
+# Street Food Empire: Kingston Rush QA Checklist - v0.6.0
 
 Use this checklist before sharing a demo build to verify all core systems, mobile layouts, and save migrations function as expected.
 
@@ -149,3 +149,17 @@ Check the canvas centering and font readability at these viewports:
 - [ ] Confirm that Reset Save resets `tutorialCompleted` to `false` in settings.
 - [ ] Confirm that when the Upgrade Panel renders, the first affordable/useful upgrade (`grill_speed` at level 0) has a yellow `(Recommended)` tag appended to its label.
 
+## 16. Juice / Fun Feedback Pass (v0.6.0)
+- [ ] Serve a correct order and confirm the customer briefly shows a happy success state before leaving.
+- [ ] Confirm correct-serve feedback is readable and does not block the order bubble or grill slots for too long.
+- [ ] Confirm base coin feedback, tip feedback, and XP feedback are visually distinct.
+- [ ] Build a streak and confirm `Fast Serve!`, `Streak x2`, or `Hot Hands!` style feedback appears appropriately.
+- [ ] Complete a session goal during active play and confirm `Goal Complete!` / `Bonus Ready` feedback appears without opening a modal.
+- [ ] Open the Goals panel and complete a goal; confirm the panel updates/pulses without blocking gameplay.
+- [ ] Buy an upgrade and confirm the purchased row flashes while the recommendation label still appears correctly.
+- [ ] Confirm upgrade purchase feedback names the upgrade level and improvement type.
+- [ ] Finish a day and confirm the summary emphasizes shift quality, total earned, goal bonus, grade, and Next Target.
+- [ ] Confirm goal bonus rewards are still awarded exactly once at day end.
+- [ ] Confirm level-up feedback still works and the camera shake remains very small.
+- [ ] Confirm no particle spam, large camera movement, or performance-heavy effects were added.
+- [ ] Confirm no new content, backend, ads, IAP, cloud saves, external assets, audio files, or dependencies were added.

@@ -21,6 +21,7 @@ import { Stall } from '../entities/Stall';
 import { MarketBackdrop } from '../entities/MarketBackdrop';
 import { HUD } from '../ui/HUD';
 import { DaySummaryPanel } from '../ui/DaySummaryPanel';
+import { FeedbackEffects } from '../ui/FeedbackEffects';
 import { HelpPanel } from '../ui/HelpPanel';
 import { OfflineRewardPanel } from '../ui/OfflineRewardPanel';
 import { UpgradePanel } from '../ui/UpgradePanel';
@@ -67,6 +68,13 @@ export class MainScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.daySummaryPanel = undefined;
+    this.helpPanel = undefined;
+    this.offlineRewardPanel = undefined;
+    this.sessionGoalsPanel = undefined;
+    this.pendingOfflineReward = undefined;
+    this.tutorialOverlay = undefined;
+
     this.saveSystem = new SaveSystem(UPGRADES);
     const loadedSave = this.saveSystem.load();
 
@@ -168,7 +176,7 @@ export class MainScene extends Phaser.Scene {
     if (endedRush) {
       this.audioSystem.play('rush_end');
       this.hud.setMessage('Rush Hour ended. Normal rewards and pacing are back.');
-      this.showFloatingText('Rush Ended', GAME_WIDTH / 2, 300, '#ffd166');
+      this.showFloatingText('Rush Ended', GAME_WIDTH / 2, 638, '#ffd166');
     }
   }
 
@@ -261,7 +269,7 @@ export class MainScene extends Phaser.Scene {
       this.audioSystem.play('button_tap');
       this.hud.updateFoodState('Burnt food cleared.');
       this.hud.setMessage('Burnt food cleared. Use an empty slot for the next item.');
-      this.showFloatingText('Burnt cleared', GAME_WIDTH / 2, 905, '#ffd166');
+      this.showFloatingText('Burnt cleared', GAME_WIDTH / 2, 744, '#ffd166');
       return;
     }
 
@@ -291,6 +299,7 @@ export class MainScene extends Phaser.Scene {
         this.audioSystem.play('food_ready');
         this.hud.setMessage(`${readyFood.name} ready. Tap its slot, then tap the customer.`);
         this.hud.updateFoodState(`${readyFood.name} ready`);
+        this.showFloatingText('Ready!', this.getSlotWorldX(_readySlotIndex), 744, '#7bd88f', 28, 34);
         if (this.tutorialSystem.isActive()) {
           this.tutorialSystem.advance('food_ready');
           this.updateTutorialOverlay();
@@ -303,7 +312,7 @@ export class MainScene extends Phaser.Scene {
         this.updateDayHud();
         this.hud.setMessage(`${burntFood.name} burned. Tap burnt slot to clear it.`);
         this.hud.updateFoodState(`${burntFood.name} burned`);
-        this.showFloatingText('Burnt Food', GAME_WIDTH / 2, 620, '#ffb3b3');
+        this.showFloatingText('Burnt Food', GAME_WIDTH / 2, 638, '#ffb3b3');
       },
     );
 
@@ -315,6 +324,7 @@ export class MainScene extends Phaser.Scene {
     this.audioSystem.play('food_prep_start');
     this.hud.updateFoodState(`Cooking ${nextFood.name} (${(prepTimeMs / 1000).toFixed(1)}s)`);
     this.hud.setMessage(`Cooking ${nextFood.name}. Ready food can burn if ignored.`);
+    this.showFloatingText('Cooking...', this.getSlotWorldX(slotIndex), 744, '#ffd166', 23, 34);
 
     if (this.tutorialSystem.isActive()) {
       this.tutorialSystem.advance('food_slot_tapped');
@@ -327,7 +337,7 @@ export class MainScene extends Phaser.Scene {
     this.updateDayHud();
     this.hud.updateFoodState(this.getSelectedFoodMessage());
     this.hud.setMessage('Discarded unwanted food from grill.');
-    this.showFloatingText('Discarded', GAME_WIDTH / 2, 905, '#ffb3b3');
+    this.showFloatingText('Discarded', GAME_WIDTH / 2, 744, '#ffb3b3');
   }
 
   private handleCustomerTap(): void {
@@ -353,7 +363,7 @@ export class MainScene extends Phaser.Scene {
     if (selectedFoodIds.length === 0) {
       this.audioSystem.play('button_tap');
       this.hud.setMessage('No food selected. Tap a ready food slot first.');
-      this.showFloatingText('No food selected', GAME_WIDTH / 2, 470, '#ffb3b3');
+      this.showFloatingText('No food selected', GAME_WIDTH / 2, 638, '#ffb3b3');
       return;
     }
 
@@ -392,22 +402,22 @@ export class MainScene extends Phaser.Scene {
     const coinResult = this.sessionGoalSystem.onCoinsEarned(totalCoinsEarned);
     const streakResult = this.sessionGoalSystem.onStreakChange(currentStreak);
     if (serveResult || coinResult || streakResult) {
-      this.showFloatingText('Goal Complete!', GAME_WIDTH / 2, 370, '#7bd88f');
+      this.showGoalCompletionFeedback();
     }
 
     this.saveGame();
     this.updatePostServiceHud();
     this.audioSystem.play('serve_success');
     this.audioSystem.play('coin_gain');
-    this.showFloatingText(`+${totalCoinsEarned} coins`, GAME_WIDTH / 2, 470, '#7bd88f');
+    this.showServeRewardFeedback(baseCoins, tipsEarned, progress.xpEarned, isFastServe, currentStreak);
+    this.hud.pulseCoins();
+    this.hud.pulseProgression();
+    this.hud.pulseSatisfaction();
+    this.hud.pulseStreak();
 
     if (this.tutorialSystem.isActive()) {
       this.tutorialSystem.advance('customer_served');
       this.updateTutorialOverlay();
-    }
-
-    if (isFastServe) {
-      this.showFloatingText(currentStreak > 1 ? `Fast Streak x${currentStreak}` : 'Fast Serve', GAME_WIDTH / 2, 420, '#ffd166');
     }
 
     if (progress.didLevelUp) {
@@ -440,7 +450,7 @@ export class MainScene extends Phaser.Scene {
     this.updateDayHud();
     this.hud.updateFoodState('Wrong order served.');
     this.hud.setMessage('Wrong Order. Check the bubble before serving.');
-    this.showFloatingText('Wrong Order', GAME_WIDTH / 2, 470, '#ffb3b3');
+    this.showFloatingText('Wrong Order', GAME_WIDTH / 2, 638, '#ffb3b3');
 
     if (summary) {
       this.handleDayComplete(summary);
@@ -460,7 +470,7 @@ export class MainScene extends Phaser.Scene {
     this.updateDayHud();
     this.hud.updateFoodState('Customer left.');
     this.hud.setMessage('Customer Left. Serve before patience runs out.');
-    this.showFloatingText('Customer Left', GAME_WIDTH / 2, 470, '#ffb3b3');
+    this.showFloatingText('Customer Left', GAME_WIDTH / 2, 638, '#ffb3b3');
 
     if (summary) {
       this.handleDayComplete(summary);
@@ -496,9 +506,11 @@ export class MainScene extends Phaser.Scene {
     // Apply bonus rewards through proper systems
     if (rewards.totalCoins > 0) {
       this.economySystem.awardCoins(rewards.totalCoins);
+      this.showFloatingText(`Goal Bonus +${rewards.totalCoins} coins`, GAME_WIDTH / 2, 340, '#7bd88f', 26);
     }
     if (rewards.totalXp > 0) {
       const bonusProgress = this.progressionSystem.awardServiceProgress(rewards.totalXp);
+      this.showFloatingText(`Goal Bonus +${rewards.totalXp} XP`, GAME_WIDTH / 2, 382, '#9fd3ff', 26, 70);
       if (bonusProgress.didLevelUp) {
         this.celebrateLevelUp(bonusProgress.currentLevel);
       }
@@ -520,7 +532,9 @@ export class MainScene extends Phaser.Scene {
     this.hud.setStartDayVisible(true);
     this.hud.updateDayState(this.daySystem.getState());
     this.hud.updateCoins(this.economySystem.getCoins());
+    this.hud.pulseCoins();
     this.renderProgression();
+    this.hud.pulseProgression();
     this.renderUpgradePanel();
     this.hud.updateFoodState('Day complete.');
     this.hud.setMessage('Review the day summary, then start another day.');
@@ -566,9 +580,11 @@ export class MainScene extends Phaser.Scene {
     this.saveGame();
     this.hud.updateCoins(this.economySystem.getCoins());
     this.renderUpgradePanel();
+    this.upgradePanel.flashUpgrade(upgradeId);
+    this.hud.pulseCoins();
     this.hud.setMessage(`Upgrade purchased. Level ${purchase.level}.`);
     this.audioSystem.play('upgrade_bought');
-    this.showFloatingText('Upgrade Bought', GAME_WIDTH / 2, 1012, '#7bd88f');
+    this.showUpgradeFeedback(upgradeId, purchase.level);
   }
 
   private handleRushHourRequest(): void {
@@ -584,7 +600,7 @@ export class MainScene extends Phaser.Scene {
 
     this.hud.setMessage('Rush Hour active: correct orders earn 2x base coins.');
     this.audioSystem.play('rush_start');
-    this.showFloatingText('Rush Hour', GAME_WIDTH / 2, 300, '#ffd166');
+    this.showFloatingText('Rush Hour', GAME_WIDTH / 2, 638, '#ffd166');
   }
 
   private handleResetSave(): void {
@@ -657,6 +673,7 @@ export class MainScene extends Phaser.Scene {
     this.offlineRewardPanel = undefined;
     this.saveGame();
     this.hud.updateCoins(this.economySystem.getCoins());
+    this.hud.pulseCoins();
     this.renderUpgradePanel();
     this.hud.setMessage(`Offline earnings collected. +${coinsAwarded} coins.`);
     this.audioSystem.play('coin_gain');
@@ -748,6 +765,71 @@ export class MainScene extends Phaser.Scene {
     }
 
     return parts.join(' | ');
+  }
+
+  private showServeRewardFeedback(
+    baseCoins: number,
+    tipsEarned: number,
+    xpEarned: number,
+    isFastServe: boolean,
+    currentStreak: number,
+  ): void {
+    this.showFloatingText('Perfect Serve!', GAME_WIDTH / 2, 638, '#7bd88f', 28, 44);
+    this.showFloatingText(`+${baseCoins} coins`, GAME_WIDTH / 2, 684, '#7bd88f', 31, 40, 80);
+    this.showFloatingText(`+${xpEarned} XP`, GAME_WIDTH / 2, 728, '#9fd3ff', 27, 36, 160);
+
+    if (tipsEarned > 0) {
+      this.showFloatingText(`+${tipsEarned} tip`, GAME_WIDTH / 2 + 122, 684, '#ffd166', 25, 40, 220);
+    }
+
+    if (isFastServe) {
+      const streakLabel = currentStreak >= 3 ? 'Hot Hands!' : currentStreak > 1 ? `Streak x${currentStreak}` : 'Fast Serve!';
+      this.showFloatingText(streakLabel, GAME_WIDTH / 2, 592, '#ffd166', 30, 40, 300);
+    }
+  }
+
+  private showGoalCompletionFeedback(): void {
+    const goals = this.sessionGoalSystem.getGoals();
+    const completedCount = goals.filter((goal) => goal.completed).length;
+    this.sessionGoalsPanel?.updateGoals(goals);
+    this.sessionGoalsPanel?.pulseCompletion();
+    this.showFloatingText('Goal Complete!', GAME_WIDTH / 2, 638, '#7bd88f', 30, 40);
+    this.showFloatingText(`Bonus Ready ${completedCount}/3`, GAME_WIDTH / 2, 684, '#ffd166', 24, 38, 120);
+  }
+
+  private showUpgradeFeedback(upgradeId: string, level: number): void {
+    const upgrade = UPGRADES.find((candidate) => candidate.id === upgradeId);
+    const upgradeName = upgrade?.name ?? 'Upgrade';
+    this.showFloatingText('Upgrade Purchased!', GAME_WIDTH / 2, 982, '#7bd88f', 28, 44);
+    this.showFloatingText(`${upgradeName} Lv. ${level}`, GAME_WIDTH / 2, 1024, '#ffd166', 23, 38, 100);
+
+    if (upgrade) {
+      this.showFloatingText(this.getUpgradeEffectText(upgrade.effectType), GAME_WIDTH / 2, 1062, '#9fd3ff', 20, 34, 190);
+    }
+  }
+
+  private getUpgradeEffectText(effectType: string): string {
+    if (effectType === 'prep_time_reduction_ms') {
+      return 'Prep time improved';
+    }
+
+    if (effectType === 'food_reward_bonus') {
+      return 'Menu value improved';
+    }
+
+    if (effectType === 'customer_patience_bonus_ms') {
+      return 'Customers wait longer';
+    }
+
+    if (effectType === 'spawn_interval_reduction_ms') {
+      return 'Customer pace improved';
+    }
+
+    return 'Stall improved';
+  }
+
+  private getSlotWorldX(slotIndex: number): number {
+    return GAME_WIDTH / 2 + (slotIndex === 0 ? -110 : 110);
   }
 
   private renderUpgradePanel(): void {
@@ -852,28 +934,23 @@ export class MainScene extends Phaser.Scene {
     return 'Upgrade is unavailable.';
   }
 
-  private showFloatingText(message: string, x: number, y: number, color: string): void {
-    const feedbackText = this.add
-      .text(x, y, message, {
-        align: 'center',
-        color,
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '30px',
-        fontStyle: 'bold',
-        stroke: '#11131e',
-        strokeThickness: 5,
-      })
-      .setOrigin(0.5);
-
-    this.tweens.add({
-      targets: feedbackText,
-      y: y - 36,
-      alpha: 0,
-      duration: 950,
-      ease: 'Sine.easeOut',
-      onComplete: () => {
-        feedbackText.destroy();
-      },
+  private showFloatingText(
+    message: string,
+    x: number,
+    y: number,
+    color: string,
+    fontSize = 30,
+    rise = 42,
+    delayMs = 0,
+  ): void {
+    FeedbackEffects.floatingText(this, {
+      x,
+      y,
+      message,
+      color,
+      fontSize,
+      rise,
+      delayMs,
     });
   }
 
@@ -903,6 +980,7 @@ export class MainScene extends Phaser.Scene {
 
   private celebrateLevelUp(level: number): void {
     this.audioSystem.play('level_up');
+    this.cameras.main.shake(140, 0.003);
     
     const flash = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xfff7df, 0.4);
     flash.setDepth(3000);

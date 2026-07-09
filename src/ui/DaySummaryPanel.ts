@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH } from '../config/constants';
+import { FeedbackEffects } from './FeedbackEffects';
 import { formatCoins } from '../utils/format';
 import type { DaySummary, SessionGoal } from '../types/gameTypes';
 
@@ -40,6 +41,18 @@ export class DaySummaryPanel extends Phaser.GameObjects.Container {
       .setOrigin(0.5);
     title.setStroke('#11131a', 4);
 
+    const shiftMessage = scene.add
+      .text(0, topY + 38, this.getShiftMessage(summary.satisfaction, goals.filter((g) => g.completed).length, goals.length), {
+        align: 'center',
+        color: '#7bd88f',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '18px',
+        fontStyle: 'bold',
+        wordWrap: { width: 480 },
+      })
+      .setOrigin(0.5);
+    shiftMessage.setStroke('#11131a', 3);
+
     // Grade badge
     const grade = this.calculateGrade(summary.satisfaction);
     const gradeColor = this.getGradeColor(grade);
@@ -66,11 +79,12 @@ export class DaySummaryPanel extends Phaser.GameObjects.Container {
     const rows = [
       `Served: ${summary.customersServed}  |  Missed: ${summary.customersMissed}`,
       `Coins: ${formatCoins(summary.coinsEarned)}  |  Tips: ${formatCoins(summary.tipsEarned)}`,
+      `Total Earned: ${formatCoins(summary.coinsEarned + bonusCoins)} coins  |  ${bonusXp} XP bonus`,
       `Satisfaction: ${Math.round(summary.satisfaction)}%  |  Streak: ${summary.bestStreak}`,
     ];
 
     const bodyText = scene.add
-      .text(0, topY + 68, rows.join('\n'), {
+      .text(0, topY + 76, rows.join('\n'), {
         align: 'center',
         color: '#fff7df',
         fontFamily: 'Arial, sans-serif',
@@ -80,7 +94,7 @@ export class DaySummaryPanel extends Phaser.GameObjects.Container {
       .setOrigin(0.5, 0);
 
     // Goals Section
-    const goalsHeaderY = topY + 170;
+    const goalsHeaderY = topY + 194;
     const completedCount = goals.filter((g) => g.completed).length;
     const goalsHeader = scene.add.text(0, goalsHeaderY, `Goals Completed: ${completedCount}/${goals.length}`, {
       color: completedCount === goals.length ? '#7bd88f' : '#ffd166',
@@ -90,7 +104,7 @@ export class DaySummaryPanel extends Phaser.GameObjects.Container {
     }).setOrigin(0.5);
     goalsHeader.setStroke('#11131a', 3);
 
-    this.add([dim, title, badge, bodyText, goalsHeader]);
+    this.add([dim, title, shiftMessage, badge, bodyText, goalsHeader]);
     this.addAt(panelG, 1);
 
     // Goal rows
@@ -120,6 +134,7 @@ export class DaySummaryPanel extends Phaser.GameObjects.Container {
       }).setOrigin(0.5);
       bonusText.setStroke('#11131a', 3);
       this.add(bonusText);
+      FeedbackEffects.pulse(scene, bonusText, 1.08, 180);
     }
 
     // Stall stage
@@ -146,6 +161,7 @@ export class DaySummaryPanel extends Phaser.GameObjects.Container {
       }).setOrigin(0.5);
       nextLabel.setStroke('#11131a', 3);
       this.add(nextLabel);
+      FeedbackEffects.pulse(scene, nextLabel, 1.05, 180);
     }
 
     // Continue button
@@ -173,6 +189,7 @@ export class DaySummaryPanel extends Phaser.GameObjects.Container {
 
     this.setDepth(2000);
     scene.add.existing(this);
+    FeedbackEffects.pulse(scene, [title, badge], 1.08, 180);
   }
 
   private calculateGrade(satisfaction: number): string {
@@ -188,5 +205,17 @@ export class DaySummaryPanel extends Phaser.GameObjects.Container {
     if (grade === 'B') return 0xffd166;
     if (grade === 'C') return 0xf39c12;
     return 0xe85d5d;
+  }
+
+  private getShiftMessage(satisfaction: number, completedGoals: number, totalGoals: number): string {
+    if (satisfaction >= 90 && completedGoals === totalGoals) {
+      return 'Great Shift! Clean serves and goals handled.';
+    }
+
+    if (satisfaction >= 75) {
+      return completedGoals > 0 ? 'Good Shift! Bonus rewards are ready.' : 'Good Shift! Keep chasing those goals.';
+    }
+
+    return 'Rough Shift. Tighten timing and protect satisfaction.';
   }
 }

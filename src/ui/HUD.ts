@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_WIDTH } from '../config/constants';
+import { FeedbackEffects } from './FeedbackEffects';
 import { formatCoins } from '../utils/format';
 import type { DayState, RushHourState } from '../types/gameTypes';
 
@@ -284,6 +285,10 @@ export class HUD {
     this.coinText.setText(`Coins: ${formatCoins(coins)}`);
   }
 
+  pulseCoins(): void {
+    FeedbackEffects.pulse(this.coinText.scene, this.coinText, 1.13);
+  }
+
   setMessage(message: string): void {
     this.messageText.setText(message);
   }
@@ -304,6 +309,10 @@ export class HUD {
     this.progressionText.setText(`Stall ${stallLevel} (${stageName}) | ${stallXp}/${nextLevelXp} XP`);
   }
 
+  pulseProgression(): void {
+    FeedbackEffects.pulse(this.progressionText.scene, this.progressionText, 1.09);
+  }
+
   updateDayState(state: DayState): void {
     const handledCustomers = state.customersServed + state.customersMissed;
     this.dayText.setText(`Customers ${handledCustomers}/${state.targetCustomers}`);
@@ -314,8 +323,16 @@ export class HUD {
     this.satisfactionText.setText(`Satisfaction ${Math.round(satisfaction)}%`);
   }
 
+  pulseSatisfaction(): void {
+    FeedbackEffects.pulse(this.satisfactionText.scene, this.satisfactionText, 1.08);
+  }
+
   updateStreak(currentStreak: number, bestStreak: number): void {
     this.streakText.setText(`Streak ${currentStreak} | Best ${bestStreak}`);
+  }
+
+  pulseStreak(): void {
+    FeedbackEffects.pulse(this.streakText.scene, this.streakText, 1.12);
   }
 
   setStartDayVisible(isVisible: boolean): void {

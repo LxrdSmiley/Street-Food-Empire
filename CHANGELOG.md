@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.6.0
+
+### Added
+- **Juice/Fun Feedback Pass:** Added lightweight Phaser primitive/tween polish around core actions without adding content or new systems.
+- **Serve Feedback:** Correct serves now trigger clearer success text, customer success state, HUD pulses, and separated reward popups.
+- **Coin / XP Feedback:** Base coins, tips, XP, and goal bonuses now use visually distinct floating text treatments.
+- **Streak Feedback:** Fast serves and multi-serve streaks now show stronger readable callouts such as `Fast Serve!`, `Streak x2`, and `Hot Hands!`.
+- **Goal Completion Feedback:** Completed session goals now trigger `Goal Complete!`, `Bonus Ready`, and goals panel pulse/update feedback without blocking play.
+- **Upgrade Purchase Feedback:** Bought upgrades now flash their row, pulse coin display, and show upgrade-specific improvement text.
+- **Day Summary Polish:** Day summary now emphasizes shift quality, total earned, goal bonus breakdown, grade, and Next Target.
+
+### Changed
+- **Level-Up Feel:** Stall level-up now includes a very small camera shake in addition to the existing flash/text celebration.
+- **Food Slot Feel:** Cooking start, food ready, and ready-slot selection have small lightweight pop feedback.
+
+### Notes
+- No new foods, customers, staff, daily rewards, backend, ads, IAP, cloud saves, multiplayer, external assets, audio files, or dependencies were added.
+- Save schema remains compatible with v0.5.0; no new persistent gameplay fields were introduced.
+
 ## v0.5.0
 
 ### Added

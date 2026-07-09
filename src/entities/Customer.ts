@@ -5,6 +5,7 @@ import type { CustomerDefinition, CustomerOrder } from '../types/gameTypes';
 const PATIENCE_BAR_WIDTH = 224;
 
 export class Customer extends Phaser.GameObjects.Container {
+  private readonly bubble: Phaser.GameObjects.Rectangle;
   private readonly readyText: Phaser.GameObjects.Text;
   private readonly patienceText: Phaser.GameObjects.Text;
   private readonly patienceBar: Phaser.GameObjects.Rectangle;
@@ -100,7 +101,7 @@ export class Customer extends Phaser.GameObjects.Container {
     }
 
     // Chat Bubble & pointer
-    const bubble = scene.add.rectangle(0, -126, 322, 136, 0xfff7df, 1).setStrokeStyle(4, 0x352c2f);
+    this.bubble = scene.add.rectangle(0, -126, 322, 136, 0xfff7df, 1).setStrokeStyle(4, 0x352c2f);
     const bubblePointer = scene.add.triangle(0, -52, -10, -6, 10, -6, 0, 8, 0xfff7df, 1);
     const bubblePointerStrokeL = scene.add.line(-5, -53, -5, -4, 5, 6, 0x352c2f, 4);
     const bubblePointerStrokeR = scene.add.line(5, -53, 5, -4, -5, 6, 0x352c2f, 4);
@@ -168,7 +169,7 @@ export class Customer extends Phaser.GameObjects.Container {
       collar,
       head,
       ...customVisuals,
-      bubble,
+      this.bubble,
       bubblePointer,
       bubblePointerStrokeL,
       bubblePointerStrokeR,
@@ -206,20 +207,36 @@ export class Customer extends Phaser.GameObjects.Container {
 
   playServedAndDestroy(): void {
     this.disableInput();
+    this.readyText.setText('Perfect!');
+    this.readyText.setColor('#1f7a3c');
+    this.bubble.setFillStyle(0xe3ffe9, 1).setStrokeStyle(5, COLORS.success);
     this.scene.tweens.add({
       targets: this,
-      y: this.y - 48,
-      alpha: 0,
-      duration: 260,
-      ease: 'Sine.easeIn',
+      y: this.y - 18,
+      scale: 1.08,
+      duration: 110,
+      yoyo: true,
+      ease: 'Back.easeOut',
       onComplete: () => {
-        this.destroy();
+        this.scene.tweens.add({
+          targets: this,
+          y: this.y - 48,
+          alpha: 0,
+          duration: 250,
+          ease: 'Sine.easeIn',
+          onComplete: () => {
+            this.destroy();
+          },
+        });
       },
     });
   }
 
   playLeftAndDestroy(): void {
     this.disableInput();
+    this.readyText.setText('Left');
+    this.readyText.setColor('#ef4444');
+    this.bubble.setFillStyle(0xffeeee, 1).setStrokeStyle(5, COLORS.danger);
     this.scene.tweens.add({
       targets: this,
       x: this.x + 80,

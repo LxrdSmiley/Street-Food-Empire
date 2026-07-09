@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_WIDTH } from '../config/constants';
+import { FeedbackEffects } from './FeedbackEffects';
 import type { SessionGoal } from '../types/gameTypes';
 
 export class SessionGoalsPanel extends Phaser.GameObjects.Container {
@@ -74,6 +75,10 @@ export class SessionGoalsPanel extends Phaser.GameObjects.Container {
       this.add(rowObjects);
       this.panelElements.push(...rowObjects);
     });
+  }
+
+  pulseCompletion(): void {
+    FeedbackEffects.pulse(this.scene, this, 1.02, 120);
   }
 
   private createGoalRow(scene: Phaser.Scene, goal: SessionGoal, y: number): Phaser.GameObjects.GameObject[] {
