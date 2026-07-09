@@ -160,6 +160,7 @@ export type TutorialStep =
   | 'open_goals'
   | 'finish_day'
   | 'open_upgrades'
+  | 'understand_upgrades'
   | 'completed';
 
 export type TutorialAction =

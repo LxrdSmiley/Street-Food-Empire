@@ -22,7 +22,7 @@ import { MarketBackdrop } from '../entities/MarketBackdrop';
 import { HUD } from '../ui/HUD';
 import { DaySummaryPanel } from '../ui/DaySummaryPanel';
 import { FeedbackEffects } from '../ui/FeedbackEffects';
-import { HelpPanel } from '../ui/HelpPanel';
+import { MenuPanel } from '../ui/MenuPanel';
 import { OfflineRewardPanel } from '../ui/OfflineRewardPanel';
 import { UpgradePanel } from '../ui/UpgradePanel';
 import { SessionGoalsPanel } from '../ui/SessionGoalsPanel';
@@ -54,9 +54,9 @@ export class MainScene extends Phaser.Scene {
   private foodStation!: FoodStation;
   private stall!: Stall;
   private hud!: HUD;
-  private upgradePanel!: UpgradePanel;
+  private upgradePanel?: UpgradePanel;
   private daySummaryPanel?: DaySummaryPanel;
-  private helpPanel?: HelpPanel;
+  private menuPanel?: MenuPanel;
   private offlineRewardPanel?: OfflineRewardPanel;
   private sessionGoalsPanel?: SessionGoalsPanel;
   private pendingOfflineReward?: OfflineEarningsResult;
@@ -69,7 +69,7 @@ export class MainScene extends Phaser.Scene {
 
   create(): void {
     this.daySummaryPanel = undefined;
-    this.helpPanel = undefined;
+    this.menuPanel = undefined;
     this.offlineRewardPanel = undefined;
     this.sessionGoalsPanel = undefined;
     this.pendingOfflineReward = undefined;
@@ -102,32 +102,26 @@ export class MainScene extends Phaser.Scene {
         this.handleRushHourRequest();
       },
       () => {
-        this.handleResetSave();
+        this.showUpgradePanel();
       },
       () => {
-        this.handleHelpRequest();
+        this.showMenuPanel();
       },
       () => {
-        this.handleSoundToggle();
-      },
-      () => {
-        this.handleGoalsToggle();
+        this.showGoalsPanel();
       },
       () => {
         this.handleStartDayRequest();
-      },
-      this.audioSystem.isEnabled(),
+      }
     );
+    this.hud.setInteractiveButtons(false);
     this.hud.updateCoins(this.economySystem.getCoins());
     this.hud.updateRushState(this.rushHourSystem.getState());
     this.hud.updateDayState(this.daySystem.getState());
     this.hud.updateStreak(this.streakSystem.getCurrentStreak(), this.streakSystem.getBestStreak());
     this.renderProgression();
 
-    this.upgradePanel = new UpgradePanel(this, (upgradeId) => {
-      this.handleBuyUpgrade(upgradeId);
-    });
-    this.renderUpgradePanel();
+    this.upgradePanel = undefined;
 
     this.foodStation = new FoodStation(
       this,
@@ -188,6 +182,9 @@ export class MainScene extends Phaser.Scene {
       this.hud.setMessage('Day already running. Finish these customers first.');
       return;
     }
+
+    this.closeAllModals();
+    this.hud.setInteractiveButtons(true);
 
     this.daySummaryPanel?.destroy();
     this.daySummaryPanel = undefined;
@@ -488,9 +485,8 @@ export class MainScene extends Phaser.Scene {
     this.customerSystem.clear();
     this.customerSystem.setActiveCustomerReadyState('waiting');
 
-    // Close goals panel if open
-    this.sessionGoalsPanel?.destroy();
-    this.sessionGoalsPanel = undefined;
+    this.closeAllModals();
+    this.hud.setInteractiveButtons(false);
 
     // Hide tutorial overlay during day summary overlay
     this.tutorialOverlay?.setVisible(false);
@@ -580,7 +576,7 @@ export class MainScene extends Phaser.Scene {
     this.saveGame();
     this.hud.updateCoins(this.economySystem.getCoins());
     this.renderUpgradePanel();
-    this.upgradePanel.flashUpgrade(upgradeId);
+    this.upgradePanel?.flashUpgrade(upgradeId);
     this.hud.pulseCoins();
     this.hud.setMessage(`Upgrade purchased. Level ${purchase.level}.`);
     this.audioSystem.play('upgrade_bought');
@@ -606,40 +602,71 @@ export class MainScene extends Phaser.Scene {
   private handleResetSave(): void {
     this.audioSystem.unlock();
     this.audioSystem.play('button_tap');
+    this.closeAllModals();
     this.saveSystem.reset();
     this.scene.restart();
-  }
-
-  private handleHelpRequest(): void {
-    this.audioSystem.unlock();
-    this.audioSystem.play('button_tap');
-    if (this.helpPanel) {
-      return;
-    }
-
-    this.helpPanel = new HelpPanel(this, () => {
-      this.helpPanel?.destroy();
-      this.helpPanel = undefined;
-    });
   }
 
   private handleSoundToggle(): void {
     this.audioSystem.unlock();
     const nextEnabled = !this.audioSystem.isEnabled();
     this.audioSystem.setEnabled(nextEnabled);
-    this.hud.updateSoundState(nextEnabled);
     this.saveGame();
     this.hud.setMessage(nextEnabled ? 'Sound enabled.' : 'Sound muted.');
     this.audioSystem.play('button_tap');
   }
 
-  private handleGoalsToggle(): void {
+  private showUpgradePanel(): void {
     this.audioSystem.unlock();
     this.audioSystem.play('button_tap');
+    this.closeGoalsPanel();
+    this.closeMenuPanel();
+
+    if (this.upgradePanel) {
+      this.closeUpgradePanel();
+      return;
+    }
+
+    this.upgradePanel = new UpgradePanel(
+      this,
+      (upgradeId) => {
+        this.handleBuyUpgrade(upgradeId);
+      },
+      () => {
+        this.closeUpgradePanel();
+      }
+    );
+    this.renderUpgradePanel();
+
+    if (this.tutorialSystem.isActive() && this.tutorialSystem.getCurrentStep() === 'open_upgrades') {
+      this.tutorialSystem.advance('upgrades_opened');
+      this.updateTutorialOverlay();
+    }
+  }
+
+  private closeUpgradePanel(): void {
+    if (this.upgradePanel) {
+      this.upgradePanel.destroy();
+      this.upgradePanel = undefined;
+
+      if (this.tutorialSystem.isActive() && this.tutorialSystem.getCurrentStep() === 'understand_upgrades') {
+        this.tutorialSystem.advance('next');
+        this.updateTutorialOverlay();
+        if (this.tutorialSystem.isCompleted()) {
+          this.finishTutorial();
+        }
+      }
+    }
+  }
+
+  private showGoalsPanel(): void {
+    this.audioSystem.unlock();
+    this.audioSystem.play('button_tap');
+    this.closeUpgradePanel();
+    this.closeMenuPanel();
 
     if (this.sessionGoalsPanel) {
-      this.sessionGoalsPanel.destroy();
-      this.sessionGoalsPanel = undefined;
+      this.closeGoalsPanel();
       return;
     }
 
@@ -649,14 +676,59 @@ export class MainScene extends Phaser.Scene {
     }
 
     this.sessionGoalsPanel = new SessionGoalsPanel(this, this.sessionGoalSystem.getGoals(), () => {
-      this.sessionGoalsPanel?.destroy();
-      this.sessionGoalsPanel = undefined;
+      this.closeGoalsPanel();
     });
 
-    if (this.tutorialSystem.isActive()) {
+    if (this.tutorialSystem.isActive() && this.tutorialSystem.getCurrentStep() === 'open_goals') {
       this.tutorialSystem.advance('goals_opened');
       this.updateTutorialOverlay();
     }
+  }
+
+  private closeGoalsPanel(): void {
+    if (this.sessionGoalsPanel) {
+      this.sessionGoalsPanel.destroy();
+      this.sessionGoalsPanel = undefined;
+    }
+  }
+
+  private showMenuPanel(): void {
+    this.audioSystem.unlock();
+    this.audioSystem.play('button_tap');
+    this.closeUpgradePanel();
+    this.closeGoalsPanel();
+
+    if (this.menuPanel) {
+      this.closeMenuPanel();
+      return;
+    }
+
+    this.menuPanel = new MenuPanel(
+      this,
+      this.audioSystem.isEnabled(),
+      () => {
+        this.handleSoundToggle();
+      },
+      () => {
+        this.handleResetSave();
+      },
+      () => {
+        this.closeMenuPanel();
+      }
+    );
+  }
+
+  private closeMenuPanel(): void {
+    if (this.menuPanel) {
+      this.menuPanel.destroy();
+      this.menuPanel = undefined;
+    }
+  }
+
+  private closeAllModals(): void {
+    this.closeUpgradePanel();
+    this.closeGoalsPanel();
+    this.closeMenuPanel();
   }
 
   private handleCollectOfflineReward(): void {
@@ -833,12 +905,14 @@ export class MainScene extends Phaser.Scene {
   }
 
   private renderUpgradePanel(): void {
-    this.upgradePanel.render(
-      this.upgradeSystem.getUpgradeStates(
-        this.economySystem.getCoins(),
-        this.progressionSystem.getStallLevel(),
-      ),
-    );
+    if (this.upgradePanel) {
+      this.upgradePanel.render(
+        this.upgradeSystem.getUpgradeStates(
+          this.economySystem.getCoins(),
+          this.progressionSystem.getStallLevel(),
+        ),
+      );
+    }
   }
 
   private renderProgression(): void {
@@ -1073,9 +1147,18 @@ export class MainScene extends Phaser.Scene {
     this.audioSystem.play('button_tap');
 
     const step = this.tutorialSystem.getCurrentStep();
-    if (step === 'welcome' || step === 'read_order' || step === 'finish_day' || step === 'open_upgrades') {
+    if (
+      step === 'welcome' ||
+      step === 'read_order' ||
+      step === 'finish_day' ||
+      step === 'open_upgrades' ||
+      step === 'understand_upgrades'
+    ) {
       this.tutorialSystem.advance('next');
       this.updateTutorialOverlay();
+      if (this.tutorialSystem.isCompleted()) {
+        this.finishTutorial();
+      }
     }
   }
 
@@ -1089,8 +1172,8 @@ export class MainScene extends Phaser.Scene {
   private finishTutorial(): void {
     this.tutorialOverlay?.destroy();
     this.tutorialOverlay = undefined;
+    this.closeUpgradePanel(); // Ensure the modal closes on completion
     this.saveGame();
     this.hud.setMessage('Tutorial completed. Ready for the night market!');
-    this.renderUpgradePanel(); // Ensure upgrade recommendation overlay re-renders
   }
 }

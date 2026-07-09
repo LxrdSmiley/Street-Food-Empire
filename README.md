@@ -6,22 +6,16 @@ The player starts with a Jamaican food cart in Kingston Night Market, serves cus
 
 ## Project Status
 
-Playable core cooking loop with first-time tutorial onboarding, session goals, early balance pass, 5 stall stages, and lightweight game-feel feedback polish (`v0.6.0`).
+Playable core cooking loop with first-time tutorial onboarding, session goals, early balance pass, 5 stall stages, lightweight game-feel feedback polish, and a clean window-oriented UI declutter layout (`v0.7.0`).
 
 Implemented now:
 
+- v0.7.0 UI Declutter: removed large help/reset/sound buttons and hint text from main HUD, moving them to a compact row of buttons (Upgrades, Goals, Menu)
+- v0.7.0 Modal Upgrades Window: converted upgrades into a full-screen, glassmorphic modal overlay card blocking background pointer clicks
+- v0.7.0 Settings & Help Menu Modal: created a settings modal containing help instructions, sound toggle, and Reset Save button with double-tap confirmation
+- v0.7.0 Gameplay-Safe Modals: disabled Upgrades/Menu during shifts to prevent punishing players with customer expiration while managing menus
+- v0.7.0 Tutorial Updates: updated onboarding flow to point to new HUD buttons and complete on upgrades modal close without purchase
 - v0.6.0 Juice/Fun Pass: improved serve, coin, XP, streak, goal, upgrade, day summary, and level-up feedback using lightweight Phaser primitives/tweens
-- v0.6.0 Reward Feedback Clarity: distinct floating text for base coins, tips, XP, goal bonuses, and upgrade effects
-- v0.6.0 Save-Compatible Polish: no new persistent gameplay state, content, dependencies, assets, backend, ads, or IAP
-- v0.5.0 First-Time Tutorial: skippable callout guides introducing core mechanics
-- v0.5.0 Tutorial UI Overlay: primitive shape text panels, pointers, skip/next buttons
-- v0.5.0 Upgrade Recommendation: automatic recommended upgrades label
-- v0.5.0 Save Settings Integration: tutorialCompleted setting auto-repairing old saves
-- v0.4.0 Session Goals: 3 goals per day (serve correct, earn coins, streak, satisfaction, avoid wrong orders, two-item orders)
-- v0.4.0 Goals Panel with progress indicators and reward display
-- v0.4.0 Auto-preview goals at day start
-- v0.4.0 Goal bonus rewards (coins + XP) at day end
-- v0.4.0 Next Target motivational display in day summary
 
 - Phaser 3 + TypeScript + Vite scaffold
 - Portrait mobile-friendly canvas scaling

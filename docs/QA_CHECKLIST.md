@@ -1,4 +1,4 @@
-# Street Food Empire: Kingston Rush QA Checklist - v0.6.0
+# Street Food Empire: Kingston Rush QA Checklist - v0.7.0
 
 Use this checklist before sharing a demo build to verify all core systems, mobile layouts, and save migrations function as expected.
 
@@ -163,3 +163,24 @@ Check the canvas centering and font readability at these viewports:
 - [ ] Confirm level-up feedback still works and the camera shake remains very small.
 - [ ] Confirm no particle spam, large camera movement, or performance-heavy effects were added.
 - [ ] Confirm no new content, backend, ads, IAP, cloud saves, external assets, audio files, or dependencies were added.
+
+## 17. UI Declutter & Modal Windows (v0.7.0)
+- [ ] Verify that Reset Save, Help, and Sound buttons are removed from the main HUD.
+- [ ] Verify that hintText is removed from the main gameplay screen.
+- [ ] Verify three compact HUD buttons (Upgrades, Goals, Menu) are displayed at `y = 214`.
+- [ ] Verify that during an active day shift, Upgrades and Menu buttons are disabled (opacity lowered to 0.42 and non-interactive).
+- [ ] Verify that Goals button remains fully interactive and clickable during active day shifts.
+- [ ] Verify that when idle (before starting day), all three HUD buttons are fully interactive (opacity = 1).
+- [ ] Tap the Upgrades button: confirm it opens a modal overlay blocking background pointer clicks.
+- [ ] Verify the Upgrades modal can be closed by clicking the close `"X"` button, the bottom `"Close Upgrades"` button, or tapping the black backdrop area outside the card.
+- [ ] Tap the Menu button: confirm it opens a settings modal containing How to Play, Sound Toggle, and Reset Save.
+- [ ] Verify the Menu modal can be closed by clicking the close `"X"` button, the bottom `"Close Menu"` button, or tapping the black backdrop area outside the card.
+- [ ] Verify the one-modal rule: opening Upgrades closes Menu/Goals, opening Goals closes Upgrades/Menu, opening Menu closes Upgrades/Goals.
+- [ ] Verify that opening the Day Summary automatically closes all other modals.
+- [ ] In the Menu Modal, tap Reset Save: verify the button changes to "Confirm Reset?" and changes color.
+- [ ] Tap "Confirm Reset?" again to confirm and verify the save resets.
+- [ ] Tap Reset Save once, then close the menu without confirming: verify the confirmation is cancelled and the text reverts back to "Reset Save".
+- [ ] Verify that the tutorial step `open_upgrades` points to the new HUD Upgrades button, and `understand_upgrades` points to the upgrades modal's close button.
+- [ ] Verify that the tutorial completes when closing the upgrades modal without requiring a purchase.
+- [ ] Verify that all full-screen overlays (Upgrade backdrop, Menu backdrop) derive their bounds from `GAME_WIDTH` and `GAME_HEIGHT` constants (no hardcoded raw values).
+

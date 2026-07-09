@@ -18,7 +18,8 @@ const TARGETS: Record<TutorialStep, CalloutTarget> = {
   serve_customer: { x: GAME_WIDTH / 2, y: 520, arrowDir: 'up' },
   open_goals: { x: 556, y: 214, arrowDir: 'up' },
   finish_day: { x: GAME_WIDTH / 2, y: 560, arrowDir: 'none' },
-  open_upgrades: { x: GAME_WIDTH / 2, y: 1100, arrowDir: 'down' },
+  open_upgrades: { x: 180, y: 214, arrowDir: 'up' },
+  understand_upgrades: { x: 360, y: 800, arrowDir: 'down' },
   completed: { x: GAME_WIDTH / 2, y: 560, arrowDir: 'none' },
 };
 
@@ -128,7 +129,7 @@ export class TutorialOverlay extends Phaser.GameObjects.Container {
     this.calloutText.setPosition(GAME_WIDTH / 2, panelY);
 
     // Check if step requires "Next" button click to advance
-    const showNext = step === 'welcome' || step === 'read_order' || step === 'open_upgrades';
+    const showNext = step === 'welcome' || step === 'read_order' || step === 'understand_upgrades';
     
     // Draw callout panel background
     const textHeight = this.calloutText.height;

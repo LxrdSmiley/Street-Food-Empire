@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.7.0
+
+### Added
+- **Modal Upgrades Window:** Reworked the upgrades panel to render as a hidden-by-default, full-screen glassmorphic modal overlay card blocking pointer inputs.
+- **Settings & Help Menu Modal:** Relocated the sound toggle, reset save, and help instructions into a new compact Settings/Help modal, reducing main screen HUD footprint.
+- **Backdrop and Close Button Support:** Modals can be closed by clicking the close `"X"` button, the bottom `"Close"` button, or tapping the semi-transparent black backdrop outside the modal card.
+- **Double-Tap Reset Confirmation:** Reset Save button now requires a confirmation click ("Confirm Reset?") before resetting.
+- **Coordination/Mutual Exclusion:** Opening any modal (Upgrades, Goals, Menu) automatically closes any other active modal. Opening the Day Summary closes all active modals.
+
+### Changed
+- **HUD Simplification:** Removed large Help, Reset, and Sound buttons from active play HUD, replaced with a row of three clean buttons (Upgrades, Goals, Menu) at `y = 214`.
+- **Gameplay-Safe Modals:** Upgrades and Menu buttons are disabled during active day shifts (opacity = `0.42` and interactive zone disabled) to prevent pausing/punishing active gameplay. Goals button remains available during active play.
+- **Tutorial Updates:** Modified tutorial steps to point to the new HUD Upgrades button and the modal's Close button. Tutorial completes on modal close without requiring a purchase.
+- **Removed Hint Text:** Removed the large, always-visible gameplay instruction label to maximize visual dominance of the cart and customer areas.
+
+### Notes
+- Sizing and scaling for full-screen overlays derive from project constants (`GAME_WIDTH` and `GAME_HEIGHT`) to ensure mobile layout compatibility.
+- Save settings (`soundEnabled` and `tutorialCompleted`) remain backwards-compatible with v0.6.0 saves.
+
 ## v0.6.0
 
 ### Added

@@ -10,7 +10,8 @@ const STEP_MESSAGES: Record<TutorialStep, string> = {
   serve_customer: 'Tap the customer to serve the order.',
   open_goals: 'Tap Goals to see bonus rewards for today.',
   finish_day: 'Keep serving customers until the day ends! Tap Next to continue.',
-  open_upgrades: 'After the shift, use coins to buy upgrades at the bottom. Tap Next to finish.',
+  open_upgrades: 'After the shift, tap Upgrades to open the upgrades window.',
+  understand_upgrades: 'Here you can upgrade your equipment. Tap Close Upgrades to complete the tutorial.',
   completed: '',
 };
 
@@ -90,7 +91,12 @@ export class TutorialSystem {
         }
         break;
       case 'open_upgrades':
-        if (action === 'next' || action === 'upgrades_opened') {
+        if (action === 'upgrades_opened') {
+          this.currentStep = 'understand_upgrades';
+        }
+        break;
+      case 'understand_upgrades':
+        if (action === 'next') {
           this.complete();
         }
         break;
